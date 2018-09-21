@@ -1,0 +1,38 @@
+type; cells; edges; phase; value; capacity; name
+
+track; A15; 1-6; 4; ; ; 
+track; C7; 1-6; 4; ; ; 
+city; C15; 2, 4; 1; 40; 2; Detroit
+city; D20; 1, 2, 4; 1; 10; 2; Erie
+city; E21; 2, 3, 5; 4; 10; 1; Salamanca
+city; F20; 2, 3, 5, 6; 4; 10; 1; Homewood
+city; G19; 6; 4; 10; 1; Wheeling
+city; I5; 1, 2, 4, 5; 4; 10; 2; Centralia
+city; I15; 3, 4, 5; 4; 20; 1; Huntington
+city; K3; 4; 4; 20; 1; Cairo
+# chicago; D6; 1, 4, 5, 6; 1; 10; 4; Chicago
+
+city; C9; ; 0; 0; 1; South Bend
+city; D14; ; 0; 0; 1; Toledo
+city; E11; ; 0; 0; 1; Fort Wayne
+city; C17; ; 0; 0; 1; Cleveland
+city; G3; ; 0; 0; 1; Springfield
+city; G7; ; 0; 0; 1; Terre Haute
+city; G9; ; 0; 0; 1; Indianapolis
+city; G13; ; 0; 0; 1; Dayton
+city; G15; ; 0; 0; 1; Columbus
+city; H12; ; 0; 0; 1; Cinncinati
+
+edge; B8; 5; ; 40, 10; 0; Holland
+east; B18; 2; ; 30, 50, 20; 0; Sarnia
+west; C5; 6; ; 20, 40, 50; 0; Chicago Connections
+east; C17; 2; ; 40, 60, 30; 0; Windsor
+east; C21; 1; ; 30, 60, 30; 0; Buffalo
+east; D22; 2; ; 30, 60, 30; 0; Buffalo
+east; E23; 2; ; 20, 50, 30; 0; Binghamton
+east; F22; 2; ; 30, 70, 20; 0; Pittsburg
+east; G21; 2, 3; ; 30, 70, 20; 0; Pittsburg
+east; H20; 3; ; 20, 40, 30; 0; Cumberland
+west; I1; 4, 5; ; 50, 70, 20; 0; St. Louis
+east; I17; 2; ; 20, 50, 20; 0; Charleston
+edge; J10; 3, 4; ; 50, 70; 0; Louisville
