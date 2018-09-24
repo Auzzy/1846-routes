@@ -1,6 +1,5 @@
-import heapq
+import argparse
 import itertools
-import operator
 
 import boardstate
 import railroads
@@ -9,21 +8,6 @@ from route import Route
 
 
 def find_best_routes(route_by_train, railroad):
-    '''
-    sorted_routes = {}
-    for train in railroad.trains:
-        sorted_routes[train] = list(sorted(route_to_value[train].items(), key=operator.itemgetter(1), reverse=True))
-
-    best_routes = {train: routes.pop() for train, routes in sorted_routes.items()}
-    while True:
-        
-        
-        for route1, route2 in itertools.combinations(best_routes.values(), 2):
-            if route1.overlap(route2):
-                break
-        else:
-            return best_routes
-    '''
     if len(route_by_train) == 1:
         route_sets = [{train: (route, value)} for train, routes in route_by_train.items() for route, value in routes.items()]
     else:
@@ -37,7 +21,6 @@ def find_best_routes(route_by_train, railroad):
         
     return max(route_sets, key=lambda route_set: sum(value for route, value in route_set.values()))
 
-
 def get_subroutes(routes, stations):
     subroutes = [route.subroutes(station.cell) for station in stations for route in routes]
     return set(itertools.chain.from_iterable([subroute for subroute in subroutes if subroute]))
@@ -50,7 +33,7 @@ def walk_paths(board, railroad, enter_from, cell, length, visited=None):
     visited = visited or []
     
     tile = board.get_space(cell)
-    if not tile or (enter_from and enter_from not in tile.paths) or tile in visited:
+    if not tile or (enter_from and enter_from not in tile.paths()) or tile in visited:
         return (Route.empty(), )
 
     if tile.is_city:
@@ -61,7 +44,7 @@ def walk_paths(board, railroad, enter_from, cell, length, visited=None):
     else:
         remaining_cities = length
 
-    neighbors = tile.paths[enter_from] if enter_from else tile.paths.keys()
+    neighbors = tile.paths(enter_from, railroad) if enter_from else tile.paths()
     routes = []
     for neighbor in neighbors:
         neighbor_paths = walk_paths(board, railroad, cell, neighbor, remaining_cities, visited + [tile])
@@ -76,7 +59,7 @@ def walk_paths(board, railroad, enter_from, cell, length, visited=None):
 def find_paths(board, railroad, cell, train):
     tile = board.get_space(cell)
     if not tile.is_city:
-        raise Exception("How is your station not in a city?")
+        raise Exception("How is your station not in a city? {}".format(cell))
 
     return walk_paths(board, railroad, None, cell, train.visit)
 
@@ -97,25 +80,40 @@ def find_routes(board, railroad):
                         connected_paths.add(path)
 
             routes[train].update(connected_paths)
+
         routes[train].update(get_subroutes(routes[train], stations))
+
     return routes
 
-board = boardstate.load()
-railroads = railroads.load(board)
+def detect_phase(railroads):
+    return max([train.phase for railroad in railroads.values() for train in railroad.trains])
 
-routes = find_routes(board, railroads["Chesapeke & Ohio"])
+def calc_route(board, railroads, active_railroad):
+    routes = find_routes(board, active_railroad)
 
-# phase should be auto-detected based on trains owned by railroads
-phase = 1
-route_by_train = {}
-for train in routes:
-    route_by_train[train] = {}
-    # print("TRAIN: {}".format(train))
-    for route in routes[train]:
-        route_by_train[train][route] = route.value(train, phase)
-        # print("{}: {}".format(str(route), route_by_train[train][route]))
+    phase = detect_phase(railroads)
+    route_by_train = {}
+    for train in routes:
+        route_by_train[train] = {route: route.value(train, phase) for route in routes[train]}
+    
+    best_route = find_best_routes(route_by_train, active_railroad)
+    for train, route_and_value in best_route.items():
+        print("{}: {} ({})".format(train, *route_and_value))
 
-# print()
-best_route = find_best_routes(route_by_train, railroads["Chesapeke & Ohio"])
-for train, route_and_value in best_route.items():
-    print("{}: {} ({})".format(train, *route_and_value))
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("active-railroad",
+            help="The name of the railroad for whom to find the route. Must be present in the railroads file.")
+    parser.add_argument("--board-state-file", default="board-state.csv",
+            help=("CSV file containing the board state. Semi-colon is the column separator. "
+                  "The columns are: coord; tile_id; orientation"))
+    parser.add_argument("--railroads-file", default="railroads.csv",
+            help=("CSV file containing the board state. Semi-colon is the column separator. "
+                  "The columns are: name; trains; stations; chicago_station_exit"))
+    return vars(parser.parse_args())
+
+if __name__ == "__main__":
+    args = parse_args()
+    board = boardstate.load(args["board_state_file"])
+    railroads = railroads.load(board, args["railroads_file"])
+    calc_route(board, railroads, railroads[args["active-railroad"]])

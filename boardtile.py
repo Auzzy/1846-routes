@@ -1,80 +1,59 @@
 import collections
-import csv
+import json
 
-from cell import Cell
+from cell import Cell, CHICAGO_CELL
 from station import Station
 
-BASE_BOARD_FILE = "base-board.csv"
+BASE_BOARD_FILE = "base-board.json"
 
 class BoardSpace(object):
-    @staticmethod
-    def parse(board_tile_args):
-        name = board_tile_args["name"]
-        cell = Cell.from_coord(board_tile_args["cells"])
-        phase = int(board_tile_args["phase"]) if board_tile_args["phase"] else None
-        capacity = int(board_tile_args["capacity"]) if board_tile_args["capacity"] else None
-        return name, cell, phase, capacity
-
-    def __init__(self, name, cell, phase, edges):
+    def __init__(self, name, cell, phase, paths):
         self.name = name
         self.cell = cell
-        self.edges = edges
         self.phase = phase
+        self._paths = paths
+
+    def paths(self, enter_from=None, railroad=None):
+        if enter_from:
+            return self._paths[enter_from]
+        else:
+            return tuple(self._paths.keys())
 
 class Track(BoardSpace):
     @staticmethod
-    def create(board_tile_args):
-        # A track tile won't have a name or capacity, so we can ignore them
-        _, cell, phase, _ = BoardSpace.parse(board_tile_args)
+    def create(coord, edges, phase=None):
+        cell = Cell.from_coord(coord)
         
         paths = collections.defaultdict(list)
-        for edge_str in board_tile_args["edges"].split(','):
-            edge = [edge_val.strip() for edge_val in edge_str.split('-')]
-            paths[edge[0]].append(edge[1])
-            paths[edge[1]].append(edge[0])
-        
+        for start, end in edges:
+            paths[start].append(end)
+            paths[end].append(start)
+
         return Track(cell, phase, paths)
 
     def __init__(self, cell, phase, paths):
-        super(Track, self).__init__(None, cell, None, tuple(paths.keys()))
-        
-        self.paths = paths
+        super(Track, self).__init__(None, cell, None, paths)
 
     def is_city(self):
         return False
 
 class City(BoardSpace):
     @staticmethod
-    def create(board_tile_args):
-        name, cell, phase, capacity = BoardSpace.parse(board_tile_args)
+    def create(coord, name, phase=None, edges=[], value=0, capacity=0, is_z=False):
+        cell = Cell.from_coord(coord)
 
-        value = int(board_tile_args["value"])
+        neighbors = {cell.neighbors[side] for side in edges}
 
-        neighbors = {cell.neighbors[int(side.strip())] for side in board_tile_args["edges"].split(',')} if board_tile_args["edges"] else {}
-
-        paths = collections.defaultdict(list)
-        for neighbor in neighbors:
-            paths[neighbor].extend(list(neighbors - {neighbor}))
-        
-        '''
-        paths = collections.defaultdict(list)
-        for start, ends in tile.paths.items():
-            start_cell = cell.neighbors[PlacedTile._rotate(start, orientation)]
-            start_tile = board.get_space(start_cell)
-            if start_tile and cell in start_tile.neighbors:
-                for end in ends:
-                    end_cell = cell.neighbors[PlacedTile._rotate(end, orientation)]
-                    end_tile = board.get_space(end_cell)
-                    if end_tile and cell in end_tile.neighbors:
-                        paths[start_cell].append(end_cell)
-        '''
-        
-        return City(name, cell, phase, paths, neighbors, value, capacity)
+        if cell == CHICAGO_CELL:
+            paths = {cell.neighbors[side]: [] for side in edges}
+            return Chicago(phase, paths, neighbors, value, capacity)
+        else:
+            paths = {neighbor: list(neighbors - {neighbor}) for neighbor in neighbors}
+            return City(name, cell, phase, paths, neighbors, value, capacity)
 
     def __init__(self, name, cell, phase, paths, neighbors, value, capacity):
-        super(City, self).__init__(name, cell, phase, tuple(paths.keys()))
-        
-        self.paths = paths
+        super(City, self).__init__(name, cell, phase, paths)
+
         self.neighbors = neighbors
         self._value = value
         self.capacity = capacity
@@ -87,11 +66,19 @@ class City(BoardSpace):
     def value(self, phase):
         return self._value
 
-    def has_station(self, railroad_name):
-        return any(True for station in self._stations if station.railroad.name == railroad_name)
+    def add_station(self, railroad):
+        station = Station(self.cell, railroad)
+        self._stations.append(station)
+        return station
 
-    def add_station(self, cell, railroad):
-        self._stations.append(Station(cell, railroad))
+    def get_station(self, railroad_name):
+        for station in self._stations:
+            if station.railroad.name == railroad_name:
+                return station
+        return None
+
+    def has_station(self, railroad_name):
+        return bool(self.get_station(railroad_name))
 
     def is_city(self):
         return True
@@ -99,31 +86,41 @@ class City(BoardSpace):
     def passable(self, railroad):
         return self.capacity - len(self.stations) > 0 or self.has_station(railroad.name)
 
+class Chicago(City):
+    def __init__(self, phase, paths, neighbors, value, capacity):
+        super(Chicago, self).__init__("Chicago", CHICAGO_CELL, phase, paths, neighbors, value, capacity)
+
+        self.exit_cell_to_station = {}
+
+    def add_station(self, railroad, exit_cell):
+        station = super(Chicago, self).add_station(self.cell, railroad)
+        self.exit_cell_to_station[exit_cell] = station
+        return station
+
+    def passable(self, railroad):
+        return False
 
 class BoardEdge(BoardSpace):
     @staticmethod
-    def create(board_tile_args):
-        # This will never have capacity or a phase, so we can ignore them
-        name, cell, _, _ = BoardSpace.parse(board_tile_args)
+    def create(coord, name, edges, values, is_east=False, is_west=False):
+        cell = Cell.from_coord(coord)
 
-        paths = {cell.neighbors[int(side.strip())]: [] for side in board_tile_args["edges"].split(',')}
+        paths = {cell.neighbors[side]: [] for side in edges}
         neighbors = set(paths.keys())
-        value_tuple = [int(val) for val in board_tile_args["value"].split(',')]
-        board_edge_args = (name, cell, paths, neighbors, value_tuple)
 
-        if board_tile_args["type"] == "edge":
-            return BoardEdge(*board_edge_args)
-        elif board_tile_args["type"] == "east":
-            return EastEdge(*board_edge_args)
-        elif board_tile_args["type"] == "west":
-            return WestEdge(*board_edge_args)
+        if is_east:
+            return EastEdge(name, cell, paths, neighbors, values)
+        elif is_west:
+            return WestEdge(name, cell, paths, neighbors, values)
+        else:
+            return BoardEdge(name, cell, paths, neighbors, values)
 
-    def __init__(self, name, cell, paths, neighbors, value_tuple):
-        super(BoardEdge, self).__init__(name, cell, None, tuple(paths.keys()))
+    def __init__(self, name, cell, paths, neighbors, value_dict):
+        super(BoardEdge, self).__init__(name, cell, None, paths)
 
-        self.paths = paths
         self.neighbors = neighbors
-        self.phase1_value, self.phase3_value = value_tuple
+        self.phase1_value = value_dict["phase1"]
+        self.phase3_value = value_dict["phase3"]
 
     def value(self, phase):
         return self.phase1_value if phase in (1, 2) else self.phase3_value
@@ -135,34 +132,28 @@ class BoardEdge(BoardSpace):
         return False
 
 class EastEdge(BoardEdge):
-    def __init__(self, name, cell, edges, neighbors, value_tuple):
-        phase_values, self.bonus = value_tuple[:2], value_tuple[2]
-
-        super(EastEdge, self).__init__(name, cell, edges, neighbors, phase_values)
+    def __init__(self, name, cell, paths, neighbors, value_dict):
+        super(EastEdge, self).__init__(name, cell, paths, neighbors, value_dict)
+        
+        self.bonus = value_dict["bonus"]
 
     def value(self, phase, east_to_west=False):
         return super(EastEdge, self).value(phase) + (self.bonus if east_to_west else 0)
 
 class WestEdge(BoardEdge):
-    def __init__(self, name, cell, edges, neighbors, value_tuple):
-        phase_values, self.bonus = value_tuple[:2], value_tuple[2]
-
-        super(WestEdge, self).__init__(name, cell, edges, neighbors, phase_values)
+    def __init__(self, name, cell, paths, neighbors, value_dict):
+        super(WestEdge, self).__init__(name, cell, paths, neighbors, value_dict)
+        
+        self.bonus = value_dict["bonus"]
 
     def value(self, phase, east_to_west=False):
         return super(WestEdge, self).value(phase) + (self.bonus if east_to_west else 0)
 
-
 def load():
     board_tiles = []
-    with open(BASE_BOARD_FILE, newline='') as board_file:
-        for base_board_args in csv.DictReader(board_file, delimiter=';', skipinitialspace=True):
-            if base_board_args["type"] == "track":
-                board_tiles.append(Track.create(base_board_args))
-            elif base_board_args["type"] == "city":
-                board_tiles.append(City.create(base_board_args))
-            elif base_board_args["type"] == "chicago":
-                pass
-            elif base_board_args["type"] in ("edge", "east", "west"):
-                board_tiles.append(BoardEdge.create(base_board_args))
+    with open(BASE_BOARD_FILE) as board_file:
+        board_json = json.load(board_file)
+        board_tiles.extend([Track.create(coord, **track_args) for coord, track_args in board_json["tracks"].items()])
+        board_tiles.extend([City.create(coord, **city_args) for coord, city_args in board_json["cities"].items()])
+        board_tiles.extend([BoardEdge.create(coord, **board_edge_args) for coord, board_edge_args in board_json["edges"].items()])
     return board_tiles

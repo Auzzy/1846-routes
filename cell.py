@@ -2,6 +2,7 @@ MIN_ROW = "A"
 MAX_ROW = "K"
 MIN_COL = 1
 MAX_COL = 23
+CHICAGO_CELL = None  # Defined below
 
 class Cell(object):
     @staticmethod
@@ -37,3 +38,5 @@ class Cell(object):
 
     def __repr__(self):
         return str(self)
+
+CHICAGO_CELL = Cell.from_coord("D6")
