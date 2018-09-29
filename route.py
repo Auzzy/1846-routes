@@ -1,6 +1,6 @@
 import heapq
 
-from boardtile import EastEdge, WestEdge
+from boardtile import EastTerminalCity, WestTerminalCity
 
 class Route(object):
     @staticmethod
@@ -24,7 +24,7 @@ class Route(object):
 
     def value(self, train, phase):
         edges = [self._path[0], self._path[-1]]
-        east_to_west = not bool({EastEdge, WestEdge} - {type(tile) for tile in edges})
+        east_to_west = not bool({EastTerminalCity, WestTerminalCity} - {type(tile) for tile in edges})
         if east_to_west:
             with_bonus = sum(heapq.nlargest(train.collect - 2, [tile.value(phase) for tile in self._path[1:-1]])) + sum([edge.value(phase, east_to_west) for edge in edges])
             without_bonus = sum(heapq.nlargest(train.collect, [tile.value(phase) for tile in self]))

@@ -116,4 +116,5 @@ if __name__ == "__main__":
     args = parse_args()
     board = boardstate.load(args["board_state_file"])
     railroads = railroads.load(board, args["railroads_file"])
+    board.validate()
     calc_route(board, railroads, railroads[args["active-railroad"]])

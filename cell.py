@@ -1,28 +1,30 @@
-MIN_ROW = "A"
-MAX_ROW = "K"
-MIN_COL = 1
-MAX_COL = 23
+import itertools
+
 CHICAGO_CELL = None  # Defined below
+_CELL_DB = {}
+
 
 class Cell(object):
     @staticmethod
     def from_coord(coord):
         row, col = coord[0], int(coord[1:])
-        return Cell(row, col)
+        if row not in _CELL_DB or col not in _CELL_DB[row]:
+            raise ValueError("The coordinate provided is not legal: {}".format(coord))
+        return _CELL_DB[row][col]
 
     def __init__(self, row, col):
-        self._row = row
-        self._col = col
+        self.__row = row
+        self.__col = col
 
     @property
     def neighbors(self):
         return {
-            1: Cell(chr(ord(self._row) + 1), self._col - 1),
-            2: Cell(self._row, self._col - 2),
-            3: Cell(chr(ord(self._row) - 1), self._col - 1),
-            4: Cell(chr(ord(self._row) - 1), self._col + 1),
-            5: Cell(self._row, self._col + 2),
-            6: Cell(chr(ord(self._row) + 1), self._col + 1)
+            1: _CELL_DB.get(chr(ord(self.__row) + 1), {}).get(self.__col - 1),
+            2: _CELL_DB.get(self.__row, {}).get(self.__col - 2),
+            3: _CELL_DB.get(chr(ord(self.__row) - 1), {}).get(self.__col - 1),
+            4: _CELL_DB.get(chr(ord(self.__row) - 1), {}).get(self.__col + 1),
+            5: _CELL_DB.get(self.__row, {}).get(self.__col + 2),
+            6: _CELL_DB.get(chr(ord(self.__row) + 1), {}).get(self.__col + 1)
         }
 
     def __hash__(self):
@@ -34,9 +36,23 @@ class Cell(object):
         return str(self) == str(other)
 
     def __str__(self):
-        return "{}{}".format(self._row, self._col)
+        return "{}{}".format(self.__row, self.__col)
 
     def __repr__(self):
         return str(self)
+
+_CELL_DB = {
+    "A": {15: Cell("A", 15)},
+    "B": {col: Cell("B", col) for col in range(8, 19, 2)},
+    "C": {col: Cell("C", col) for col in itertools.chain([5], range(7, 18, 2), [21])},
+    "D": {col: Cell("D", col) for col in itertools.chain(range(6, 15, 2), range(18, 23, 2))},
+    "E": {col: Cell("E", col) for col in range(5, 24, 2)},
+    "F": {col: Cell("F", col) for col in range(4, 23, 2)},
+    "G": {col: Cell("G", col) for col in range(3, 22, 2)},
+    "H": {col: Cell("H", col) for col in itertools.chain(range(2, 17, 2), [20])},
+    "I": {col: Cell("I", col) for col in itertools.chain(range(1, 12, 2), range(15, 18, 2))},
+    "J": {col: Cell("J", col) for col in itertools.chain(range(4, 11, 2))},
+    "K": {3: Cell("K", 3)}
+}
 
 CHICAGO_CELL = Cell.from_coord("D6")

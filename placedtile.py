@@ -9,23 +9,46 @@ class PlacedTile(object):
         # (side num) + (number of times rotated), then 0-indexed (by subtracting 1), perform mod 6 (number of sides), then 1-indexed (by adding 1)
         return ((side + (orientation - 1) - 1) % 6) + 1
 
-    def __init__(self, cell, tile, orientation, capacity=None, stations=[]):
+    @staticmethod
+    def get_paths(cell, tile, orientation):
+        paths = {}
+        for start, ends in tile.paths.items():
+            start_cell = cell.neighbors[PlacedTile._rotate(start, orientation)]
+            paths[start_cell] = tuple([cell.neighbors[PlacedTile._rotate(end, orientation)] for end in ends])
+
+        if None in paths:
+            raise ValueError("Placing tile {} in orientation {} at {} goes off-map.".format(tile.id, orientation, cell))
+
+        return paths
+
+    @staticmethod
+    def place(name, cell, tile, orientation, capacity=None, stations=[]):
+        paths = {}
+        for start, ends in tile.paths.items():
+            start_cell = cell.neighbors[PlacedTile._rotate(start, orientation)]
+            paths[start_cell] = tuple([cell.neighbors[PlacedTile._rotate(end, orientation)] for end in ends])
+
+        # This will cause problems if B&O or PRR use their special station...
+        if None in paths:
+            raise ValueError("Placing tile {} in orientation {} at {} goes off-map.".format(tile.id, orientation, cell))
+
+        return PlacedTile(name, cell, tile, orientation, capacity, stations, paths)
+
+    def __init__(self, name, cell, tile, orientation, capacity=None, stations=[], paths={}):
+        self.name = name or str(cell)
         self.cell = cell
         self.tile = tile
         self.capacity = capacity
         self._stations = list(stations)
-
-        self._paths = {}
-        for start, ends in tile.paths.items():
-            start_cell = self.cell.neighbors[self._rotate(start, orientation)]
-            self._paths[start_cell] = tuple([cell.neighbors[self._rotate(end, orientation)] for end in ends])
+        self._paths = paths
+        
+        self.phase = self.tile.phase
+        self.is_city = self.tile.is_city
+        self.is_z = self.tile.is_z
+        self.is_terminal_city = False
 
     def value(self, phase):
         return self.tile.value
-
-    @property
-    def is_city(self):
-        return self.tile.is_city or self.tile.is_z or self.tile.is_chicago
 
     def passable(self, railroad):
         return self.capacity - len(self.stations) > 0 or self.has_station(railroad.name)
@@ -35,6 +58,12 @@ class PlacedTile(object):
         return tuple(self._stations)
 
     def add_station(self, railroad):
+        if self.has_station(railroad.name):
+            raise ValueError("{} already has a station in {} ({}).".format(railroad.name, self.name, self.cell))
+
+        if self.capacity <= len(self.stations):
+            raise ValueError("{} ({}) cannot hold any more stations.".format(self.name, self.cell))
+
         station = Station(self.cell, railroad)
         self._stations.append(station)
         return station
@@ -55,8 +84,13 @@ class PlacedTile(object):
             return tuple(self._paths.keys())
 
 class Chicago(PlacedTile):
-    def __init__(self, tile, capacity, exit_cell_to_station={}):
-        super(Chicago, self).__init__(CHICAGO_CELL, tile, 1, capacity, list(exit_cell_to_station.values()))
+    @staticmethod
+    def place(tile, capacity, exit_cell_to_station={}):
+        paths = PlacedTile.get_paths(CHICAGO_CELL, tile, 1)
+        return Chicago(tile, capacity, exit_cell_to_station, paths)
+
+    def __init__(self, tile, capacity, exit_cell_to_station={}, paths={}):
+        super(Chicago, self).__init__("Chicago", CHICAGO_CELL, tile, 1, capacity, list(exit_cell_to_station.values()), paths)
         
         self.exit_cell_to_station = exit_cell_to_station
 
