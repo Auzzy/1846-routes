@@ -1,10 +1,10 @@
 import collections
 import json
 
-from cell import Cell, CHICAGO_CELL
-from station import Station
+from routes1846.cell import Cell, CHICAGO_CELL
+from routes1846.station import Station
 
-BASE_BOARD_FILE = "base-board.json"
+BASE_BOARD_FILE = "data/base-board.json"
 
 class BoardSpace(object):
     def __init__(self, name, cell, phase, paths, is_city=False, is_z=False, is_chicago=False, is_terminal_city=False):

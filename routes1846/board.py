@@ -1,9 +1,9 @@
 import itertools
 
-import boardtile
-from cell import Cell, CHICAGO_CELL
-from placedtile import Chicago, PlacedTile
-from station import Station
+from routes1846 import boardtile
+from routes1846.cell import Cell, CHICAGO_CELL
+from routes1846.placedtile import Chicago, PlacedTile
+from routes1846.station import Station
 
 class Board(object):
     @staticmethod

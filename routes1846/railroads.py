@@ -1,7 +1,7 @@
 import csv
 import itertools
 
-from station import Station
+from routes1846.station import Station
 
 FIELDNAMES = ("name", "trains", "stations", "chicago_station_exit_coord")
 TRAIN_TO_PHASE = {

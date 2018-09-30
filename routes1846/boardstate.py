@@ -1,7 +1,7 @@
 import csv
 
-from board import Board
-from tiles import get_tile
+from routes1846.board import Board
+from routes1846.tiles import get_tile
 
 FIELDNAMES = ("coord", "tile_id", "orientation")
 

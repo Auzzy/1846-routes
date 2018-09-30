@@ -1,7 +1,7 @@
 import collections
 
-from cell import Cell, CHICAGO_CELL
-from station import Station
+from routes1846.cell import Cell, CHICAGO_CELL
+from routes1846.station import Station
 
 class PlacedTile(object):
     @staticmethod

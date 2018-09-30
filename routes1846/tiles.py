@@ -40,7 +40,7 @@ class Tile(object):
             self.capcacity = 0
 
 
-def _load_all(filepath="tiles.json"):
+def _load_all(filepath="data/tiles.json"):
     with open(filepath) as tiles_file:
         tiles_json = json.load(tiles_file)
 
