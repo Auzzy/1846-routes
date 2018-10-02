@@ -1,10 +1,11 @@
 import collections
 import json
 
+from routes1846 import get_data_file
 from routes1846.cell import Cell, CHICAGO_CELL
 from routes1846.station import Station
 
-BASE_BOARD_FILE = "data/base-board.json"
+BASE_BOARD_FILENAME = "base-board.json"
 
 class BoardSpace(object):
     def __init__(self, name, cell, phase, paths, is_city=False, is_z=False, is_chicago=False, is_terminal_city=False):
@@ -152,7 +153,7 @@ class WestTerminalCity(TerminalCity):
 
 def load():
     board_tiles = []
-    with open(BASE_BOARD_FILE) as board_file:
+    with open(get_data_file(BASE_BOARD_FILENAME)) as board_file:
         board_json = json.load(board_file)
         board_tiles.extend([Track.create(coord, **track_args) for coord, track_args in board_json["tracks"].items()])
         board_tiles.extend([City.create(coord, **city_args) for coord, city_args in board_json["cities"].items()])

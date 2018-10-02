@@ -5,7 +5,7 @@ from routes1846.tiles import get_tile
 
 FIELDNAMES = ("coord", "tile_id", "orientation")
 
-def load(board_state_filepath="board-state.csv"):
+def load(board_state_filepath):
     board = Board.load()    
 
     with open(board_state_filepath, newline='') as tiles_file:

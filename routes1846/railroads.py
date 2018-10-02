@@ -49,7 +49,7 @@ class Railroad(object):
         self.trains = trains
 
 
-def load(board, railroads_filepath="railroads.csv"):
+def load(board, railroads_filepath):
     with open(railroads_filepath, newline='') as railroads_file:
         railroads = {}
         for railroad_args in csv.DictReader(railroads_file, fieldnames=FIELDNAMES, delimiter=';', skipinitialspace=True):

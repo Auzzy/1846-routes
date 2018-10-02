@@ -1,7 +1,10 @@
 import collections
 import json
 
+from routes1846 import get_data_file
 
+
+_TILE_FILENAME = "tiles.json"
 _TILES = {}
 
 class Tile(object):
@@ -40,8 +43,8 @@ class Tile(object):
             self.capcacity = 0
 
 
-def _load_all(filepath="data/tiles.json"):
-    with open(filepath) as tiles_file:
+def _load_all():
+    with open(get_data_file(_TILE_FILENAME)) as tiles_file:
         tiles_json = json.load(tiles_file)
 
     return {int(id): Tile.create(int(id), **args) for id, args in tiles_json.items()}
