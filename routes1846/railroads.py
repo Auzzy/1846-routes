@@ -49,20 +49,23 @@ class Railroad(object):
         self.trains = trains
 
 
-def load(board, railroads_filepath):
+def load_from_csv(board, railroads_filepath):
     with open(railroads_filepath, newline='') as railroads_file:
-        railroads = {}
-        for railroad_args in csv.DictReader(railroads_file, fieldnames=FIELDNAMES, delimiter=';', skipinitialspace=True):
-            railroad = Railroad.create(railroad_args["name"], railroad_args["trains"])
-            railroads[railroad.name] = railroad
-            
-            for coord in railroad_args["stations"].split(","):
-                coord = coord.strip()
-                if coord:
-                    board.place_station(coord, railroad)
+        return load(board, csv.DictReader(railroads_file, fieldnames=FIELDNAMES, delimiter=';', skipinitialspace=True))
 
-            chicago_station_exit_coord = railroad_args["chicago_station_exit_coord"].strip()
-            if chicago_station_exit_coord:
-                board.place_chicago_station(railroad, chicago_station_exit_coord)
+def load(board, railroads_rows):
+    railroads = {}
+    for railroad_args in railroads_rows:
+        railroad = Railroad.create(railroad_args["name"], railroad_args["trains"])
+        railroads[railroad.name] = railroad
+
+        for coord in railroad_args["stations"].split(","):
+            coord = coord.strip()
+            if coord:
+                board.place_station(coord, railroad)
+
+        chicago_station_exit_coord = railroad_args["chicago_station_exit_coord"].strip()
+        if chicago_station_exit_coord:
+            board.place_chicago_station(railroad, chicago_station_exit_coord)
 
     return railroads

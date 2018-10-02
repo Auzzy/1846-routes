@@ -16,8 +16,8 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    board = boardstate.load(args["board-state-file"])
-    railroads = railroads.load(board, args["railroads-file"])
+    board = boardstate.load_from_csv(args["board-state-file"])
+    railroads = railroads.load_from_csv(board, args["railroads-file"])
     board.validate()
 
     best_routes = find_best_routes(board, railroads, railroads[args["active-railroad"]])
