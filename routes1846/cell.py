@@ -33,7 +33,25 @@ class Cell(object):
     def __eq__(self, other):
         if not isinstance(other, Cell):
             return False
-        return str(self) == str(other)
+        return self.__col == other.__col and self.__row == other.__row
+
+    def __gt__(self, other):
+        if self.__row == other.__row:
+            return self.__col > other.__col
+        else:
+            return self.__row > other.__row
+
+    def __lt__(self, other):
+        if self.__row == other.__row:
+            return self.__col < other.__col
+        else:
+            return self.__row < other.__row
+
+    def __ge__(self, other):
+        return self > other or self == other
+
+    def __le__(self, other):
+        return self < other or self == other
 
     def __str__(self):
         return "{}{}".format(self.__row, self.__col)
