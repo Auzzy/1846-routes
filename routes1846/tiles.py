@@ -12,7 +12,7 @@ class Tile(object):
     def create(id, edges, value, quantity, phase, is_city=False, is_z=False, is_chicago=False):
         
         paths = collections.defaultdict(list)
-        if is_city:
+        if is_city and not is_chicago:
             exits = set(edges)
             for side in exits:
                 paths[side].extend(list(exits - {side}))

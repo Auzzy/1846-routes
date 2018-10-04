@@ -298,6 +298,7 @@
         "value": 40,
         "quantity": 1,
         "phase": 2,
+        "is_city": true,
         "is_chicago": true
     },
     "299": {
@@ -305,6 +306,7 @@
         "value": 70,
         "quantity": 1,
         "phase": 3,
+        "is_city": true,
         "is_chicago": true
     },
     "300": {
@@ -312,6 +314,7 @@
         "value": 90,
         "quantity": 1,
         "phase": 4,
+        "is_city": true,
         "is_chicago": true
     }
 }
