@@ -109,6 +109,9 @@ class Chicago(PlacedTile):
         return tuple(paths)
 
     def add_station(self, railroad, exit_cell):
+        if exit_cell not in self.paths():
+            raise ValueError("Illegal exit cell for Chicago")
+
         station = super(Chicago, self).add_station(railroad)
         self.exit_cell_to_station[exit_cell] = station
         return station

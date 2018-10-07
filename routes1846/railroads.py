@@ -2,6 +2,7 @@ import csv
 import itertools
 
 from routes1846.station import Station
+from routes1846.cell import CHICAGO_CELL, Cell
 
 FIELDNAMES = ("name", "trains", "stations", "chicago_station_exit_coord")
 TRAIN_TO_PHASE = {
@@ -40,8 +41,8 @@ class Train(object):
 
 class Railroad(object):
     @staticmethod
-    def create(name, trains):
-        trains = [Train.create(train_str) for train_str in trains.split(",")]
+    def create(name, trains_str):
+        trains = [Train.create(train_str) for train_str in trains_str.split(",")] if trains_str else []
         return Railroad(name, trains)
 
     def __init__(self, name, trains):
@@ -56,16 +57,22 @@ def load_from_csv(board, railroads_filepath):
 def load(board, railroads_rows):
     railroads = {}
     for railroad_args in railroads_rows:
-        railroad = Railroad.create(railroad_args["name"], railroad_args["trains"])
+        railroad = Railroad.create(railroad_args["name"], railroad_args.get("trains"))
         railroads[railroad.name] = railroad
 
-        for coord in railroad_args["stations"].split(","):
-            coord = coord.strip()
-            if coord:
-                board.place_station(coord, railroad)
+        station_coords_str = railroad_args.get("stations")
+        if station_coords_str:
+            station_coords = station_coords_str.split(",")
+            for coord in station_coords:
+                coord = coord.strip()
+                if coord and Cell.from_coord(coord) != CHICAGO_CELL:
+                    board.place_station(coord, railroad)
 
-        chicago_station_exit_coord = railroad_args["chicago_station_exit_coord"].strip()
-        if chicago_station_exit_coord:
-            board.place_chicago_station(railroad, chicago_station_exit_coord)
+            if str(CHICAGO_CELL) in station_coords:
+                chicago_station_exit_coord = railroad_args.get("chicago_station_exit_coord", "").strip()
+                if not chicago_station_exit_coord:
+                    raise ValueError("Chicago is listed as a station for {}, but not exit side was specified.".format(railroad.name))
+    
+                board.place_chicago_station(railroad, chicago_station_exit_coord)
 
     return railroads

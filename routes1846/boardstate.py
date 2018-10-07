@@ -15,6 +15,10 @@ def load(board_state_rows):
 
     tile_args_dicts = []
     for tile_args in board_state_rows:
+        missing = [arg for arg in ("coord", "tile_id", "orientation") if not tile_args.get(arg)]
+        if missing:
+            raise ValueError("Invalid board state input. Got a row missing: {}".format(", ".join(missing)))
+
         tile_args["tile"] = get_tile(tile_args.pop("tile_id"))
         tile_args_dicts.append(tile_args)
 
