@@ -22,7 +22,7 @@ class PlacedTile(object):
         return paths
 
     @staticmethod
-    def place(name, cell, tile, orientation, capacity=None, stations=[]):
+    def place(name, cell, tile, orientation, stations=[]):
         paths = {}
         for start, ends in tile.paths.items():
             start_cell = cell.neighbors[PlacedTile._rotate(start, orientation)]
@@ -32,13 +32,13 @@ class PlacedTile(object):
         if None in paths:
             raise ValueError("Placing tile {} in orientation {} at {} goes off-map.".format(tile.id, orientation, cell))
 
-        return PlacedTile(name, cell, tile, orientation, capacity, stations, paths)
+        return PlacedTile(name, cell, tile, orientation, stations, paths)
 
-    def __init__(self, name, cell, tile, orientation, capacity=None, stations=[], paths={}):
+    def __init__(self, name, cell, tile, orientation, stations=[], paths={}):
         self.name = name or str(cell)
         self.cell = cell
         self.tile = tile
-        self.capacity = capacity
+        self.capacity = tile.capacity
         self._stations = list(stations)
         self._paths = paths
         
@@ -85,12 +85,12 @@ class PlacedTile(object):
 
 class Chicago(PlacedTile):
     @staticmethod
-    def place(tile, capacity, exit_cell_to_station={}):
+    def place(tile, exit_cell_to_station={}):
         paths = PlacedTile.get_paths(CHICAGO_CELL, tile, 1)
-        return Chicago(tile, capacity, exit_cell_to_station, paths)
+        return Chicago(tile, exit_cell_to_station, paths)
 
-    def __init__(self, tile, capacity, exit_cell_to_station={}, paths={}):
-        super(Chicago, self).__init__("Chicago", CHICAGO_CELL, tile, 1, capacity, list(exit_cell_to_station.values()), paths)
+    def __init__(self, tile, exit_cell_to_station={}, paths={}):
+        super(Chicago, self).__init__("Chicago", CHICAGO_CELL, tile, 1, list(exit_cell_to_station.values()), paths)
         
         self.exit_cell_to_station = exit_cell_to_station
 

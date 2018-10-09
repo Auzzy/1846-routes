@@ -34,13 +34,13 @@ class Tile(object):
         self.is_chicago = is_chicago
 
         if self.is_chicago:
-            self.capcacity = 4
+            self.capacity = 4
         elif self.is_z:
-            self.capcacity = min(self.phase, 3)
+            self.capacity = min(self.phase, 3)
         elif self.is_city:
-            self.capcacity = min(self.phase, 2)
+            self.capacity = min(self.phase, 2)
         else:
-            self.capcacity = 0
+            self.capacity = 0
 
 
 def _load_all():

@@ -44,7 +44,7 @@ class Board(object):
             elif old_tile.phase >= tile.phase:
                 raise ValueError("{}: Going from phase {} to phase {} is not an upgrade.".format(cell, old_tile.phase, tile.phase))
 
-            new_tile = PlacedTile.place(old_tile.name, cell, tile, int(orientation), capacity=old_tile.capacity, stations=old_tile.stations)
+            new_tile = PlacedTile.place(old_tile.name, cell, tile, int(orientation), stations=old_tile.stations)
 
             for old_start, old_ends in old_tile._paths.items():
                 old_paths = tuple([(old_start, end) for end in old_ends])
@@ -73,7 +73,7 @@ class Board(object):
         if not old_tile.phase or old_tile.phase >= tile.phase:
             raise ValueError("{}: Going from phase {} to phase {} is not an upgrade.".format(cell, old_tile.phase, tile.phase))
 
-        new_tile = Chicago.place(tile, old_tile.capacity, old_tile.exit_cell_to_station)
+        new_tile = Chicago.place(tile, old_tile.exit_cell_to_station)
         self._placed_tiles[cell] = new_tile
 
     def place_chicago_station(self, railroad, exit_coord):
