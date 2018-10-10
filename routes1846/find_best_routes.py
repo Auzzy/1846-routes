@@ -16,7 +16,7 @@ def _find_best_routes_by_train(route_by_train, railroad):
             else:
                 route_sets.append({train: (route, route_by_train[train][route]) for train, route in zip(route_by_train.keys(), route_set)})
         
-    return max(route_sets, key=lambda route_set: sum(value for route, value in route_set.values()))
+    return max(route_sets, key=lambda route_set: sum(value for route, value in route_set.values())) if route_sets else {}
 
 def _get_subroutes(routes, stations):
     subroutes = [route.subroutes(station.cell) for station in stations for route in routes]
