@@ -42,7 +42,7 @@ class Train(object):
 class Railroad(object):
     @staticmethod
     def create(name, trains_str):
-        trains = [Train.create(train_str) for train_str in trains_str.split(",")] if trains_str else []
+        trains = [Train.create(train_str) for train_str in trains_str.split(",") if train_str] if trains_str else []
         return Railroad(name, trains)
 
     def __init__(self, name, trains):

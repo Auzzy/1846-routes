@@ -7,6 +7,9 @@ _CELL_DB = {}
 class Cell(object):
     @staticmethod
     def from_coord(coord):
+        if len(coord) < 2 or len(coord) > 3:
+            raise ValueError("Provided invalid coord: {}".format(coord))
+        
         row, col = coord[0], int(coord[1:])
         if row not in _CELL_DB or col not in _CELL_DB[row]:
             raise ValueError("The coordinate provided is not legal: {}".format(coord))

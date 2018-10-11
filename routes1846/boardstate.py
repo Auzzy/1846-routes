@@ -15,11 +15,15 @@ def load(board_state_rows):
 
     tile_args_dicts = []
     for tile_args in board_state_rows:
-        missing = [arg for arg in ("coord", "tile_id", "orientation") if not tile_args.get(arg)]
+        missing = [arg for arg in FIELDNAMES if not tile_args.get(arg)]
         if missing:
             raise ValueError("Invalid board state input. Got a row missing: {}".format(", ".join(missing)))
 
-        tile_args["tile"] = get_tile(tile_args.pop("tile_id"))
+        tile_id = tile_args.pop("tile_id")
+        tile_args["tile"] = get_tile(tile_id)
+        if not tile_args["tile"]:
+            raise ValueError("No tile with the tile ID {} was found.".format(tile_id))
+        
         tile_args_dicts.append(tile_args)
 
     for tile_args in sorted(tile_args_dicts, key=lambda adict: adict["tile"].phase):

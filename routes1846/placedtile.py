@@ -7,7 +7,7 @@ class PlacedTile(object):
     @staticmethod
     def _rotate(side, orientation):
         # (side num) + (number of times rotated), then 0-indexed (by subtracting 1), perform mod 6 (number of sides), then 1-indexed (by adding 1)
-        return ((side + (orientation - 1) - 1) % 6) + 1
+        return ((side + (int(orientation) - 1) - 1) % 6) + 1
 
     @staticmethod
     def get_paths(cell, tile, orientation):
@@ -32,9 +32,9 @@ class PlacedTile(object):
         if None in paths:
             raise ValueError("Placing tile {} in orientation {} at {} goes off-map.".format(tile.id, orientation, cell))
 
-        return PlacedTile(name, cell, tile, orientation, stations, paths)
+        return PlacedTile(name, cell, tile, stations, paths)
 
-    def __init__(self, name, cell, tile, orientation, stations=[], paths={}):
+    def __init__(self, name, cell, tile, stations=[], paths={}):
         self.name = name or str(cell)
         self.cell = cell
         self.tile = tile
@@ -90,7 +90,7 @@ class Chicago(PlacedTile):
         return Chicago(tile, exit_cell_to_station, paths)
 
     def __init__(self, tile, exit_cell_to_station={}, paths={}):
-        super(Chicago, self).__init__("Chicago", CHICAGO_CELL, tile, 1, list(exit_cell_to_station.values()), paths)
+        super(Chicago, self).__init__("Chicago", CHICAGO_CELL, tile, list(exit_cell_to_station.values()), paths)
         
         self.exit_cell_to_station = exit_cell_to_station
 

@@ -22,6 +22,9 @@ class Board(object):
 
         old_tile = self.get_space(cell)
 
+        if int(orientation) not in range(1, 7):
+            raise ValueError("Orientation out of range. Expected between 1 and 6, inclusive. Got {}.".format(orientation))
+
         if old_tile and old_tile.is_terminal_city:
             raise ValueError("Cannot upgrade the terminal cities.")
 
@@ -44,7 +47,7 @@ class Board(object):
             elif old_tile.phase >= tile.phase:
                 raise ValueError("{}: Going from phase {} to phase {} is not an upgrade.".format(cell, old_tile.phase, tile.phase))
 
-            new_tile = PlacedTile.place(old_tile.name, cell, tile, int(orientation), stations=old_tile.stations)
+            new_tile = PlacedTile.place(old_tile.name, cell, tile, orientation, stations=old_tile.stations)
 
             for old_start, old_ends in old_tile._paths.items():
                 old_paths = tuple([(old_start, end) for end in old_ends])
@@ -52,7 +55,7 @@ class Board(object):
                 if not all(old_path in new_paths for old_path in old_paths):
                     raise ValueError("The new tile placed on {} does not preserve all the old paths.".format(cell))
         else:
-            new_tile = PlacedTile.place(None, cell, tile, int(orientation))
+            new_tile = PlacedTile.place(None, cell, tile, orientation)
 
         self._placed_tiles[cell] = new_tile
 
