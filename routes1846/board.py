@@ -79,9 +79,9 @@ class Board(object):
         new_tile = Chicago.place(tile, old_tile.exit_cell_to_station)
         self._placed_tiles[cell] = new_tile
 
-    def place_chicago_station(self, railroad, exit_coord):
+    def place_chicago_station(self, railroad, exit_side):
         chicago = self.get_space(CHICAGO_CELL)
-        exit_cell = Cell.from_coord(exit_coord)
+        exit_cell = CHICAGO_CELL.neighbors[exit_side]
         chicago.add_station(railroad, exit_cell)
 
     def stations(self, railroad_name=None):

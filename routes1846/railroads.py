@@ -69,10 +69,10 @@ def load(board, railroads_rows):
                     board.place_station(coord, railroad)
 
             if str(CHICAGO_CELL) in station_coords:
-                chicago_station_exit_coord = railroad_args.get("chicago_station_exit_coord", "").strip()
+                chicago_station_exit_coord = str(railroad_args.get("chicago_station_exit_coord", "")).strip()
                 if not chicago_station_exit_coord:
                     raise ValueError("Chicago is listed as a station for {}, but not exit side was specified.".format(railroad.name))
     
-                board.place_chicago_station(railroad, chicago_station_exit_coord)
+                board.place_chicago_station(railroad, int(chicago_station_exit_coord))
 
     return railroads
