@@ -97,15 +97,19 @@ class Chicago(PlacedTile):
     def paths(self, enter_from=None, railroad=None):
         paths = list(super(Chicago, self).paths(enter_from))
         if railroad:
-            station = self.exit_cell_to_station.get(enter_from)
-            if station:
-                if station.railroad != railroad:
+            enter_from_station = self.exit_cell_to_station.get(enter_from)
+            if enter_from_station:
+                if enter_from_station.railroad != railroad:
                     paths = []
             else:
-                for exit in paths:
-                    station = self.exit_cell_to_station.get(exit)
-                    if station and station.railroad != railroad:
-                        paths.remove(exit)
+                if not enter_from:
+                    station = self.get_station(railroad.name)
+                    paths = [self.get_station_exit_cell(station), Cell.from_coord("C5")] if station else []
+                else:
+                    for exit in paths:
+                        station = self.exit_cell_to_station.get(exit)
+                        if station and station.railroad != railroad:
+                            paths.remove(exit)
         return tuple(paths)
 
     def add_station(self, railroad, exit_cell):
@@ -115,3 +119,9 @@ class Chicago(PlacedTile):
         station = super(Chicago, self).add_station(railroad)
         self.exit_cell_to_station[exit_cell] = station
         return station
+
+    def get_station_exit_cell(self, user_station):
+        for exit_cell, station in self.exit_cell_to_station.items():
+            if station == user_station:
+                return exit_cell
+        raise ValueError("The requested station was not found: {}".format(user_station))

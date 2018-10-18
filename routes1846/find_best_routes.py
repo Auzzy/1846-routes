@@ -2,6 +2,7 @@ import itertools
 
 from routes1846.board import Board
 from routes1846.route import Route
+from routes1846.cell import CHICAGO_CELL
 
 
 def _find_best_routes_by_train(route_by_train, railroad):
@@ -28,7 +29,7 @@ def _find_connected_cities(board, railroad, cell, dist):
 
 def _walk_routes(board, railroad, enter_from, cell, length, visited=None):
     visited = visited or []
-    
+
     tile = board.get_space(cell)
     if not tile or (enter_from and enter_from not in tile.paths()) or tile in visited:
         return (Route.empty(), )
@@ -41,7 +42,9 @@ def _walk_routes(board, railroad, enter_from, cell, length, visited=None):
     else:
         remaining_cities = length
 
-    neighbors = tile.paths(enter_from, railroad) if enter_from else tile.paths()
+    # neighbors = tile.paths(enter_from, railroad) if enter_from else tile.paths()
+    neighbors = tile.paths(enter_from, railroad)
+
     routes = []
     for neighbor in neighbors:
         neighbor_paths = _walk_routes(board, railroad, cell, neighbor, remaining_cities, visited + [tile])
@@ -73,7 +76,12 @@ def _find_all_routes(board, railroad):
             connected_paths = set()
             for cell in connected_cities:
                 for path in _find_routes_from_cell(board, railroad, cell, train):
-                    if path.contains_cell(station.cell):
+                    if station.cell == CHICAGO_CELL:
+                        chicago = board.get_space(CHICAGO_CELL)
+                        exit_cell = chicago.get_station_exit_cell(station)
+                        if path.contains_cell(CHICAGO_CELL) and path.contains_cell(exit_cell):
+                            connected_paths.add(path)
+                    elif path.contains_cell(station.cell):
                         connected_paths.add(path)
 
             routes[train].update(connected_paths)
