@@ -1,11 +1,11 @@
 {
     "tracks": {
         "A15": {
-            "edges": [[1, 6]],
+            "edges": [[0, 5]],
             "phase": 4
         },
         "C7": {
-            "edges": [[1, 6]],
+            "edges": [[0, 5]],
             "phase": 4
         }
     },
@@ -20,7 +20,7 @@
         },
         "C15": {
             "name": "Detroit",
-            "edges": [2, 4],
+            "edges": [1, 3],
             "phase": 1,
             "value": 40,
             "capacity": 2,
@@ -28,7 +28,7 @@
         },
         "D6": {
             "name": "Chicago",
-            "edges": [1, 4, 5, 6],
+            "edges": [0, 3, 4, 5],
             "phase": 1,
             "value": 10,
             "capacity": 4
@@ -39,7 +39,7 @@
         },
         "D20": {
             "name": "Erie",
-            "edges": [1, 2, 4],
+            "edges": [0, 1, 3],
             "phase": 1,
             "value": 10,
             "capacity": 2
@@ -55,14 +55,14 @@
         },
         "E21": {
             "name": "Salamanca",
-            "edges": [2, 3, 5],
+            "edges": [1, 2, 4],
             "phase": 4,
             "value": 10,
             "capacity": 1
         },
         "F20": {
             "name": "Homewood",
-            "edges": [2, 3, 5, 6],
+            "edges": [1, 2, 4, 5],
             "phase": 4,
             "value": 10,
             "capacity": 1
@@ -89,7 +89,7 @@
         },
         "G19": {
             "name": "Wheeling",
-            "edges": [6],
+            "edges": [5],
             "phase": 1,
             "value": 10,
             "capacity": 1
@@ -101,21 +101,21 @@
         },
         "I5": {
             "name": "Centralia",
-            "edges": [1, 2, 4, 5],
+            "edges": [0, 1, 3, 4],
             "phase": 4,
             "value": 10,
             "capacity": 2
         },
         "I15": {
             "name": "Huntington",
-            "edges": [3, 4, 5],
+            "edges": [2, 3, 4],
             "phase": 4,
             "value": 20,
             "capacity": 1
         },
         "K3": {
             "name": "Cairo",
-            "edges": [4],
+            "edges": [3],
             "phase": 4,
             "value": 20,
             "capacity": 1
@@ -124,7 +124,7 @@
     "edges": {
         "B8": {
             "name": "Holland",
-            "edges": [5],
+            "edges": [4],
             "values": {
                 "phase1": 40,
                 "phase3": 10
@@ -132,7 +132,7 @@
         },
         "B18": {
             "name": "Sarnia",
-            "edges": [2],
+            "edges": [1],
             "values": {
                 "phase1": 30,
                 "phase3": 50,
@@ -142,7 +142,7 @@
         },
         "C5": {
             "name": "Chicago Connections",
-            "edges": [6],
+            "edges": [5],
             "values": {
                 "phase1": 20,
                 "phase3": 40,
@@ -152,7 +152,7 @@
         },
         "C17": {
             "name": "Windsor",
-            "edges": [2],
+            "edges": [1],
             "values": {
                 "phase1": 40,
                 "phase3": 60,
@@ -162,7 +162,7 @@
         },
         "C21": {
             "name": "Buffalo",
-            "edges": [1],
+            "edges": [0],
             "values": {
                 "phase1": 30,
                 "phase3": 60,
@@ -172,7 +172,7 @@
         },
         "D22": {
             "name": "Buffalo",
-            "edges": [2],
+            "edges": [1],
             "values": {
                 "phase1": 30,
                 "phase3": 60,
@@ -182,7 +182,7 @@
         },
         "E23": {
             "name": "Binghamton",
-            "edges": [2],
+            "edges": [1],
             "values": {
                 "phase1": 20,
                 "phase3": 50,
@@ -192,7 +192,7 @@
         },
         "F22": {
             "name": "Pittsburg",
-            "edges": [2],
+            "edges": [1],
             "values": {
                 "phase1": 30,
                 "phase3": 70,
@@ -202,7 +202,7 @@
         },
         "G21": {
             "name": "Pittsburg",
-            "edges": [2, 3],
+            "edges": [1, 2],
             "values": {
                 "phase1": 30,
                 "phase3": 70,
@@ -212,7 +212,7 @@
         },
         "H20": {
             "name": "Cumberland",
-            "edges": [3],
+            "edges": [2],
             "values": {
                 "phase1": 20,
                 "phase3": 40,
@@ -222,7 +222,7 @@
         },
         "I1": {
             "name": "St. Louis",
-            "edges": [4, 5],
+            "edges": [3, 4],
             "values": {
                 "phase1": 50,
                 "phase3": 70,
@@ -232,7 +232,7 @@
         },
         "I17": {
             "name": "Charleston",
-            "edges": [2],
+            "edges": [1],
             "values": {
                 "phase1": 20,
                 "phase3": 50,
@@ -242,7 +242,7 @@
         },
         "J10": {
             "name": "Louisville",
-            "edges": [3, 4],
+            "edges": [2, 3],
             "values": {
                 "phase1": 50,
                 "phase3": 70

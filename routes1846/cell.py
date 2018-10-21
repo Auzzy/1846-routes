@@ -22,12 +22,12 @@ class Cell(object):
     @property
     def neighbors(self):
         return {
-            1: _CELL_DB.get(chr(ord(self.__row) + 1), {}).get(self.__col - 1),
-            2: _CELL_DB.get(self.__row, {}).get(self.__col - 2),
-            3: _CELL_DB.get(chr(ord(self.__row) - 1), {}).get(self.__col - 1),
-            4: _CELL_DB.get(chr(ord(self.__row) - 1), {}).get(self.__col + 1),
-            5: _CELL_DB.get(self.__row, {}).get(self.__col + 2),
-            6: _CELL_DB.get(chr(ord(self.__row) + 1), {}).get(self.__col + 1)
+            0: _CELL_DB.get(chr(ord(self.__row) + 1), {}).get(self.__col - 1),
+            1: _CELL_DB.get(self.__row, {}).get(self.__col - 2),
+            2: _CELL_DB.get(chr(ord(self.__row) - 1), {}).get(self.__col - 1),
+            3: _CELL_DB.get(chr(ord(self.__row) - 1), {}).get(self.__col + 1),
+            4: _CELL_DB.get(self.__row, {}).get(self.__col + 2),
+            5: _CELL_DB.get(chr(ord(self.__row) + 1), {}).get(self.__col + 1)
         }
 
     def __hash__(self):

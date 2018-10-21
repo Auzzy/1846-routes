@@ -22,8 +22,8 @@ class Board(object):
 
         old_tile = self.get_space(cell)
 
-        if int(orientation) not in range(1, 7):
-            raise ValueError("Orientation out of range. Expected between 1 and 6, inclusive. Got {}.".format(orientation))
+        if int(orientation) not in range(0, 6):
+            raise ValueError("Orientation out of range. Expected between 0 and 5, inclusive. Got {}.".format(orientation))
 
         if old_tile and old_tile.is_terminal_city:
             raise ValueError("Cannot upgrade the terminal cities.")

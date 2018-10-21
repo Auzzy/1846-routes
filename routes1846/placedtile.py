@@ -6,8 +6,8 @@ from routes1846.station import Station
 class PlacedTile(object):
     @staticmethod
     def _rotate(side, orientation):
-        # (side num) + (number of times rotated), then 0-indexed (by subtracting 1), perform mod 6 (number of sides), then 1-indexed (by adding 1)
-        return ((side + (int(orientation) - 1) - 1) % 6) + 1
+        # ((side num) + (number of times rotated)) mod (number of sides)
+        return (side + int(orientation)) % 6
 
     @staticmethod
     def get_paths(cell, tile, orientation):
@@ -86,7 +86,7 @@ class PlacedTile(object):
 class Chicago(PlacedTile):
     @staticmethod
     def place(tile, exit_cell_to_station={}):
-        paths = PlacedTile.get_paths(CHICAGO_CELL, tile, 1)
+        paths = PlacedTile.get_paths(CHICAGO_CELL, tile, 0)
         return Chicago(tile, exit_cell_to_station, paths)
 
     def __init__(self, tile, exit_cell_to_station={}, paths={}):
