@@ -23,7 +23,7 @@ def _find_best_routes_by_train(route_by_train, railroad):
     LOG.debug("Found %d route sets.", len(route_sets))
     for route_set in route_sets:
         LOG.debug(str(route_set))
-        
+
     return max(route_sets, key=lambda route_set: sum(value for route, value in route_set.values())) if route_sets else {}
 
 def _get_subroutes(routes, stations):
@@ -73,6 +73,10 @@ def _find_routes_from_cell(board, railroad, cell, train):
         raise Exception("How is your station not in a city? {}".format(cell))
 
     routes = _walk_routes(board, railroad, None, cell, train.visit)
+
+    # A route must connect at least 2 cities.
+    routes = [route for route in routes if len(route.cities) >= 2]
+
     LOG.debug("Found %d routes starting at %d.", len(routes), cell)
     return routes
 

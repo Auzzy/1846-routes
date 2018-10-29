@@ -45,10 +45,15 @@ class Route(object):
         start_index = [index for index, tile in enumerate(self._path) if tile.cell == start][0]
         backwards_subroutes = {Route.create(self._path[index:start_index]) for index in range(start_index - 1, -1, -1)}
         forwards_subroutes = {Route.create(self._path[start_index:index]) for index in range(start_index + 1, len(self._path))}
-        return backwards_subroutes.union(forwards_subroutes)
+        subroutes = backwards_subroutes.union(forwards_subroutes)
+        return [subroute for subroute in subroutes if len(subroute.cities) >= 2]
 
     def contains_cell(self, cell):
         return cell in [tile.cell for tile in self]
+
+    @property
+    def cities(self):
+        return [tile for tile in self._path if tile.is_city]
 
     def __iter__(self):
         return iter(self._path)
