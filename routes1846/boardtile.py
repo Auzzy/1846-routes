@@ -98,7 +98,7 @@ class Chicago(City):
         self.exit_cell_to_station = {}
 
     def add_station(self, railroad, exit_cell):
-        station = super(Chicago, self).add_station(self.cell, railroad)
+        station = super(Chicago, self).add_station(railroad)
         self.exit_cell_to_station[exit_cell] = station
         return station
 
