@@ -77,3 +77,8 @@ _CELL_DB = {
 }
 
 CHICAGO_CELL = Cell.from_coord("D6")
+
+def board_cells():
+    for row, columns in _CELL_DB.items():
+        for column, cell in columns.items():
+            yield cell

@@ -1,7 +1,7 @@
 import collections
 
 from routes1846.cell import Cell, CHICAGO_CELL
-from routes1846.station import Station
+from routes1846.tokens import MeatPackingToken, SeaportToken, Station
 
 class PlacedTile(object):
     @staticmethod
@@ -22,7 +22,7 @@ class PlacedTile(object):
         return paths
 
     @staticmethod
-    def place(name, cell, tile, orientation, stations=[]):
+    def place(name, cell, tile, orientation, stations=[], port_value=None, meat_value=None):
         paths = {}
         for start, ends in tile.paths.items():
             start_cell = cell.neighbors[PlacedTile._rotate(start, orientation)]
@@ -32,15 +32,19 @@ class PlacedTile(object):
         if None in paths:
             raise ValueError("Placing tile {} in orientation {} at {} goes off-map.".format(tile.id, orientation, cell))
 
-        return PlacedTile(name, cell, tile, stations, paths)
+        return PlacedTile(name, cell, tile, stations, paths, port_value, meat_value)
 
-    def __init__(self, name, cell, tile, stations=[], paths={}):
+    def __init__(self, name, cell, tile, stations=[], paths={}, port_value=None, meat_value=None):
         self.name = name or str(cell)
         self.cell = cell
         self.tile = tile
         self.capacity = tile.capacity
         self._stations = list(stations)
         self._paths = paths
+        self.port_value = port_value
+        self.port_token = None
+        self.meat_value = meat_value
+        self.meat_token = None
         
         self.phase = self.tile.phase
         self.is_city = self.tile.is_city
@@ -48,7 +52,7 @@ class PlacedTile(object):
         self.is_terminal_city = False
 
     def value(self, railroad, phase):
-        return self.tile.value
+        return self.tile.value + self.port_bonus(railroad) + self.meat_bonus(railroad)
 
     def passable(self, railroad):
         return self.capacity - len(self.stations) > 0 or self.has_station(railroad.name)
@@ -77,6 +81,24 @@ class PlacedTile(object):
     def has_station(self, railroad_name):
         return bool(self.get_station(railroad_name))
 
+    def place_seaport_token(self, railroad):
+        if self.port_value == 0:
+            raise ValueError("It is not legal to place the seaport token on this space ({}).".format(self.cell))
+
+        self.port_token = SeaportToken(self.cell, railroad)
+
+    def place_meat_packing_token(self, railroad):
+        if self.meat_value == 0:
+            raise ValueError("It is not legal to place the meat packing token on this space ({}).".format(self.cell))
+
+        self.meat_token = MeatPackingToken(self.cell, railroad)
+
+    def port_bonus(self, railroad):
+        return self.port_value if self.port_token and self.port_token.railroad == railroad else 0
+
+    def meat_bonus(self, railroad):
+        return self.meat_value if self.meat_token and self.meat_token.railroad == railroad else 0
+
     def paths(self, enter_from=None, railroad=None):
         if enter_from:
             return self._paths[enter_from]
@@ -85,12 +107,12 @@ class PlacedTile(object):
 
 class Chicago(PlacedTile):
     @staticmethod
-    def place(tile, exit_cell_to_station={}):
+    def place(tile, exit_cell_to_station={}, port_value=None, meat_value=None):
         paths = PlacedTile.get_paths(CHICAGO_CELL, tile, 0)
-        return Chicago(tile, exit_cell_to_station, paths)
+        return Chicago(tile, exit_cell_to_station, paths, port_value, meat_value)
 
-    def __init__(self, tile, exit_cell_to_station={}, paths={}):
-        super(Chicago, self).__init__("Chicago", CHICAGO_CELL, tile, list(exit_cell_to_station.values()), paths)
+    def __init__(self, tile, exit_cell_to_station={}, paths={}, port_value=None, meat_value=None):
+        super(Chicago, self).__init__("Chicago", CHICAGO_CELL, tile, list(exit_cell_to_station.values()), paths, port_value, meat_value)
         
         self.exit_cell_to_station = exit_cell_to_station
 

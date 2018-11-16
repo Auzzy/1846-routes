@@ -1,9 +1,9 @@
 import itertools
 
 from routes1846 import boardtile
-from routes1846.cell import Cell, CHICAGO_CELL
+from routes1846.cell import Cell, CHICAGO_CELL, board_cells
 from routes1846.placedtile import Chicago, PlacedTile
-from routes1846.station import Station
+from routes1846.tokens import Station
 
 class Board(object):
     @staticmethod
@@ -47,7 +47,7 @@ class Board(object):
             elif old_tile.phase >= tile.phase:
                 raise ValueError("{}: Going from phase {} to phase {} is not an upgrade.".format(cell, old_tile.phase, tile.phase))
 
-            new_tile = PlacedTile.place(old_tile.name, cell, tile, orientation, stations=old_tile.stations)
+            new_tile = PlacedTile.place(old_tile.name, cell, tile, orientation, stations=old_tile.stations, port_value=old_tile.port_value, meat_value=old_tile.meat_value)
 
             for old_start, old_ends in old_tile._paths.items():
                 old_paths = tuple([(old_start, end) for end in old_ends])
@@ -76,13 +76,31 @@ class Board(object):
         if not old_tile.phase or old_tile.phase >= tile.phase:
             raise ValueError("{}: Going from phase {} to phase {} is not an upgrade.".format(cell, old_tile.phase, tile.phase))
 
-        new_tile = Chicago.place(tile, old_tile.exit_cell_to_station)
+        new_tile = Chicago.place(tile, old_tile.exit_cell_to_station, port_value=old_tile.port_value, meat_value=old_tile.meat_value)
         self._placed_tiles[cell] = new_tile
 
     def place_chicago_station(self, railroad, exit_side):
         chicago = self.get_space(CHICAGO_CELL)
         exit_cell = CHICAGO_CELL.neighbors[exit_side]
         chicago.add_station(railroad, exit_cell)
+
+    def place_seaport_token(self, coord, railroad):
+        current_cell = Cell.from_coord(coord)
+        for cell in board_cells():
+            space = self.get_space(cell)
+            if space and space.port_token and cell != current_cell:
+                raise ValueError("Cannot place the seaport token on {}. It's already been placed on {}.".format(current_cell, cell))
+
+        self.get_space(current_cell).place_seaport_token(railroad)
+
+    def place_meat_packing_token(self, coord, railroad):
+        current_cell = Cell.from_coord(coord)
+        for cell in board_cells():
+            space = self.get_space(cell)
+            if space and space.meat_token and cell != current_cell:
+                raise ValueError("Cannot place the meat packing token on {}. It's already been placed on {}.".format(current_cell, cell))
+
+        self.get_space(current_cell).place_meat_packing_token(railroad)
 
     def stations(self, railroad_name=None):
         all_tiles = list(self._placed_tiles.values()) + list(self._board_tiles.values())
@@ -109,16 +127,3 @@ class Board(object):
         if invalid:
             invalid_str = ", ".join([str(cell) for cell in invalid])
             raise ValueError("Tiles at the following spots have no neighbors and no stations: {}".format(invalid_str))
-
-        '''
-        print("SPACE: " + str(cell))
-        valid = False
-        if new_tile.stations:
-            valid = True
-        else:
-            for neighbor_cell in new_tile.paths():
-                neighbor = self.get_space(neighbor_cell)
-                if neighbor and cell in neighbor.paths():
-                    valid = True
-        print("VALID? " + str(valid))
-        '''

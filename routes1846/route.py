@@ -28,9 +28,11 @@ class Route(object):
         if east_to_west:
             with_bonus = sum(heapq.nlargest(train.collect - 2, [tile.value(railroad, phase) for tile in self._path[1:-1]])) + sum([edge.value(railroad, phase, east_to_west) for edge in edges])
             without_bonus = sum(heapq.nlargest(train.collect, [tile.value(railroad, phase) for tile in self]))
-            return max((with_bonus, without_bonus))
+            value = max((with_bonus, without_bonus))
         else:
-            return sum(heapq.nlargest(train.collect, [tile.value(railroad, phase) for tile in self]))
+            value = sum(heapq.nlargest(train.collect, [tile.value(railroad, phase) for tile in self]))
+
+        return value
 
     def overlap(self, other):
         for edge in self._edges:

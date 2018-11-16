@@ -1,3 +1,4 @@
+import functools
 import itertools
 import logging
 
@@ -28,6 +29,11 @@ def _find_best_routes_by_train(route_by_train, railroad):
                         break
                 else:
                     run_routes.append({train: (route, route_by_train[train][route]) for train, route in zip(train_set, route_set)})
+
+    if railroad.has_mail_contract:
+        for run_route in run_routes:
+            train, route_and_val = max(run_route.items(), key=lambda run_route_item: len(run_route_item[1][0].cities))
+            run_route[train] = (route_and_val[0], route_and_val[1] + len(route_and_val[0].cities) * 10)
 
     LOG.debug("Found %d route sets.", len(run_routes))
     for run_route in run_routes:

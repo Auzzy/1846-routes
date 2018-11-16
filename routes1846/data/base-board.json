@@ -31,11 +31,13 @@
             "edges": [0, 3, 4, 5],
             "phase": 1,
             "value": 10,
+            "meat_value": 30,
             "capacity": 4
         },
         "D14": {
             "name": "Toledo",
-            "capacity": 1
+            "capacity": 1,
+            "port_value": 20
         },
         "D20": {
             "name": "Erie",
@@ -92,7 +94,8 @@
             "edges": [5],
             "phase": 1,
             "value": 10,
-            "capacity": 1
+            "capacity": 1,
+            "port_value": 40
         },
         "H12": {
             "name": "Cinncinati",
@@ -128,7 +131,8 @@
             "values": {
                 "phase1": 40,
                 "phase3": 10
-            }
+            },
+            "port_value": 40
         },
         "B18": {
             "name": "Sarnia",
@@ -148,6 +152,7 @@
                 "phase3": 40,
                 "bonus": 50
             },
+            "port_value": 20,
             "is_west": true
         },
         "C17": {
@@ -228,6 +233,8 @@
                 "phase3": 70,
                 "bonus": 20
             },
+            "port_value": 20,
+            "meat_value": 30,
             "is_west": true
         },
         "I17": {
