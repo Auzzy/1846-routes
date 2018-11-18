@@ -47,7 +47,7 @@ class PlacedTile(object):
         self.is_z = self.tile.is_z
         self.is_terminal_city = False
 
-    def value(self, phase):
+    def value(self, railroad, phase):
         return self.tile.value
 
     def passable(self, railroad):

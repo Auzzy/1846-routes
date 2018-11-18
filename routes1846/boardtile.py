@@ -65,7 +65,7 @@ class City(BoardSpace):
     def stations(self):
         return tuple(self._stations)
 
-    def value(self, phase):
+    def value(self, railroad, phase):
         return self._value
 
     def add_station(self, railroad):
@@ -127,7 +127,7 @@ class TerminalCity(BoardSpace):
         self.phase1_value = value_dict["phase1"]
         self.phase3_value = value_dict["phase3"]
 
-    def value(self, phase):
+    def value(self, railroad, phase):
         return self.phase1_value if phase in (1, 2) else self.phase3_value
 
     def passable(self, railroad):
@@ -139,8 +139,8 @@ class EastTerminalCity(TerminalCity):
         
         self.bonus = value_dict["bonus"]
 
-    def value(self, phase, east_to_west=False):
-        return super(EastTerminalCity, self).value(phase) + (self.bonus if east_to_west else 0)
+    def value(self, railroad, phase, east_to_west=False):
+        return super(EastTerminalCity, self).value(railroad, phase) + (self.bonus if east_to_west else 0)
 
 class WestTerminalCity(TerminalCity):
     def __init__(self, name, cell, paths, neighbors, value_dict):
@@ -148,8 +148,8 @@ class WestTerminalCity(TerminalCity):
         
         self.bonus = value_dict["bonus"]
 
-    def value(self, phase, east_to_west=False):
-        return super(WestTerminalCity, self).value(phase) + (self.bonus if east_to_west else 0)
+    def value(self, railroad, phase, east_to_west=False):
+        return super(WestTerminalCity, self).value(railroad, phase) + (self.bonus if east_to_west else 0)
 
 def load():
     board_tiles = []

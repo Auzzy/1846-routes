@@ -22,15 +22,15 @@ class Route(object):
     def merge(self, route):
         return Route.create(self._path + route._path)
 
-    def value(self, train, phase):
+    def value(self, train, railroad, phase):
         edges = [self._path[0], self._path[-1]]
         east_to_west = not bool({EastTerminalCity, WestTerminalCity} - {type(tile) for tile in edges})
         if east_to_west:
-            with_bonus = sum(heapq.nlargest(train.collect - 2, [tile.value(phase) for tile in self._path[1:-1]])) + sum([edge.value(phase, east_to_west) for edge in edges])
-            without_bonus = sum(heapq.nlargest(train.collect, [tile.value(phase) for tile in self]))
+            with_bonus = sum(heapq.nlargest(train.collect - 2, [tile.value(railroad, phase) for tile in self._path[1:-1]])) + sum([edge.value(railroad, phase, east_to_west) for edge in edges])
+            without_bonus = sum(heapq.nlargest(train.collect, [tile.value(railroad, phase) for tile in self]))
             return max((with_bonus, without_bonus))
         else:
-            return sum(heapq.nlargest(train.collect, [tile.value(phase) for tile in self]))
+            return sum(heapq.nlargest(train.collect, [tile.value(railroad, phase) for tile in self]))
 
     def overlap(self, other):
         for edge in self._edges:
