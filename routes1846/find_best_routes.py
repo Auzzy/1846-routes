@@ -37,7 +37,9 @@ def _find_best_routes_by_train(route_by_train, railroad):
 
     LOG.debug("Found %d route sets.", len(run_routes))
     for run_route in run_routes:
-        LOG.debug(str(run_route))
+        for train, route_and_val in run_route.items():
+            LOG.debug("{}: {} ({})".format(train, str(route_and_val[0]), route_and_val[1]))
+        LOG.debug("")
 
     return max(run_routes, key=lambda run_route: sum(value for route, value in run_route.values())) if run_routes else {}
 
@@ -92,7 +94,7 @@ def _find_routes_from_cell(board, railroad, cell, train):
     # A route must connect at least 2 cities.
     routes = [route for route in routes if len(route.cities) >= 2]
 
-    LOG.debug("Found %d routes starting at %d.", len(routes), cell)
+    LOG.debug("Found %d routes starting at %s.", len(routes), cell)
     return routes
 
 def _find_connected_routes(board, railroad, station, train):
@@ -119,23 +121,26 @@ def _find_all_routes(board, railroad):
 
     stations = board.stations(railroad.name)
 
-    routes = {}
+    routes_by_train = {}
     for train in railroad.trains:
-        routes[train] = set()
+        routes_by_train[train] = set()
         for station in stations:
             LOG.debug("Finding routes starting at station at %s.", station.cell)
-            routes[train].update(_find_routes_from_cell(board, railroad, station.cell, train))
+            routes_by_train[train].update(_find_routes_from_cell(board, railroad, station.cell, train))
 
             LOG.debug("Finding routes which pass through station at %s.", station.cell)
             connected_paths = _find_connected_routes(board, railroad, station, train)
-            routes[train].update(connected_paths)
+            routes_by_train[train].update(connected_paths)
 
         LOG.debug("Add subroutes")
-        routes[train].update(_get_subroutes(routes[train], stations))
+        routes_by_train[train].update(_get_subroutes(routes_by_train[train], stations))
 
-    LOG.info("Found %d routes.", len(routes))
+    LOG.info("Found %d routes.", sum(len(route) for route in routes_by_train.values()))
+    for train, routes in routes_by_train.items():
+        for route in routes:
+            LOG.debug("{}: {}".format(train, str(route)))
 
-    return routes
+    return routes_by_train
 
 def _detect_phase(railroads):
     return max([train.phase for railroad in railroads.values() for train in railroad.trains])

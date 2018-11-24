@@ -1,6 +1,9 @@
 import argparse
+import logging
+import sys
 
 from routes1846 import boardstate, find_best_routes, railroads
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -12,14 +15,21 @@ def parse_args():
     parser.add_argument("railroads-file",
             help=("CSV file containing the board state. Semi-colon is the column separator. "
                   "The columns are: name; trains; stations; chicago_station_exit"))
+    parser.add_argument("-v", "--verbose", action="store_true")
     return vars(parser.parse_args())
 
 if __name__ == "__main__":
     args = parse_args()
+
+    logger = logging.getLogger("routes1846")
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.setLevel(logging.DEBUG if args["verbose"] else logging.INFO)
+
     board = boardstate.load_from_csv(args["board-state-file"])
     railroads = railroads.load_from_csv(board, args["railroads-file"])
     board.validate()
 
     best_routes = find_best_routes(board, railroads, railroads[args["active-railroad"]])
+    print("RESULT")
     for train, route_and_value in best_routes.items():
         print("{}: {} ({})".format(train, *route_and_value))
