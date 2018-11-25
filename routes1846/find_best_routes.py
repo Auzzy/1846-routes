@@ -9,26 +9,40 @@ from routes1846.cell import CHICAGO_CELL
 LOG = logging.getLogger(__name__)
 
 
+def _is_overlapping(active_route, routes_to_check):
+    return any(True for route in routes_to_check if active_route.overlap(route)) if routes_to_check else False
+
+def _find_best_sub_route_sets(sorted_routes, selected_routes=None):
+    selected_routes = selected_routes or []
+
+    minor_routes = []
+    for minor_route in sorted_routes[0]:
+        if not _is_overlapping(minor_route, selected_routes):
+            if sorted_routes[1:]:
+                sub_route_sets = _find_best_sub_route_sets(sorted_routes[1:], selected_routes + [minor_route])
+                for sub_route_set in sub_route_sets:
+                    minor_routes.append([minor_route] + sub_route_set)
+            else:
+                return [[minor_route]]
+    return minor_routes
+
+def _get_route_sets(railroad, route_by_train):
+    route_sets = []
+    for train_set in _get_train_sets(railroad):
+        sorted_routes = [sorted(route_by_train[train], key=lambda route: route.value, reverse=True) for train in train_set]
+
+        sub_route_sets = _find_best_sub_route_sets(sorted_routes)
+        route_sets.extend(sub_route_sets)
+    return route_sets
+
 def _get_train_sets(railroad):
     train_sets = []
     for train_count in range(1, len(railroad.trains) + 1):
-        train_sets += [tuple(train_set) for train_set in itertools.combinations(railroad.trains, train_count)]
+        train_sets += [tuple(sorted(train_set, key=lambda train: train.collect)) for train_set in itertools.combinations(railroad.trains, train_count)]
     return train_sets
 
 def _find_best_routes_by_train(route_by_train, railroad):
-    if len(railroad.trains) == 1:
-        route_sets = [(route, ) for routes in route_by_train.values() for route in routes]
-    else:
-        route_sets = []
-        for train_set in _get_train_sets(railroad):
-            route_combinations = itertools.product(*[route_by_train[train] for train in train_set])
-
-            for route_combination in route_combinations:
-                for route1, route2 in itertools.combinations(route_combination, 2):
-                    if route1.overlap(route2):
-                        break
-                else:
-                    route_sets.append(route_combination)
+    route_sets = _get_route_sets(railroad, route_by_train)
 
     if railroad.has_mail_contract:
         for route_set in route_sets:
