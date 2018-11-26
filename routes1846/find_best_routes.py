@@ -9,37 +9,55 @@ from routes1846.cell import CHICAGO_CELL
 LOG = logging.getLogger(__name__)
 
 
+def route_set_value(route_set):
+    return sum(route.value for route in route_set)
+
 def _is_overlapping(active_route, routes_to_check):
     return any(True for route in routes_to_check if active_route.overlap(route)) if routes_to_check else False
 
-def _find_best_sub_route_sets(sorted_routes, selected_routes=None):
+def _find_best_sub_route_set(sorted_routes, selected_routes=None):
     selected_routes = selected_routes or []
 
     minor_routes = []
+    best_route_set = selected_routes
+    best_route_set_value = route_set_value(selected_routes)
     for minor_route in sorted_routes[0]:
         if not _is_overlapping(minor_route, selected_routes):
             if sorted_routes[1:]:
-                sub_route_sets = _find_best_sub_route_sets(sorted_routes[1:], selected_routes + [minor_route])
-                for sub_route_set in sub_route_sets:
-                    minor_routes.append([minor_route] + sub_route_set)
+                # Already selected routes + the current route + the maximum possible value of the remaining train routes.
+                max_possible_route_set = selected_routes + [minor_route] + [routes[0] for routes in sorted_routes[1:]]
+                max_possible_value = route_set_value(max_possible_route_set)
+                # That must be more than the current best route set value, or we bail from this iteration.
+                if max_possible_value <= best_route_set_value:
+                    return best_route_set
+
+                sub_route_set = _find_best_sub_route_set(sorted_routes[1:], selected_routes + [minor_route])
+                sub_route_set_value = route_set_value(sub_route_set)
+                if sub_route_set_value > best_route_set_value:
+                    best_route_set = sub_route_set
+                    best_route_set_value = sub_route_set_value
             else:
-                return [[minor_route]]
-    return minor_routes
-
-def _get_route_sets(railroad, route_by_train):
-    route_sets = []
-    for train_set in _get_train_sets(railroad):
-        sorted_routes = [sorted(route_by_train[train], key=lambda route: route.value, reverse=True) for train in train_set]
-
-        sub_route_sets = _find_best_sub_route_sets(sorted_routes)
-        route_sets.extend(sub_route_sets)
-    return route_sets
+                return selected_routes + [minor_route]
+    return best_route_set
 
 def _get_train_sets(railroad):
     train_sets = []
     for train_count in range(1, len(railroad.trains) + 1):
-        train_sets += [tuple(sorted(train_set, key=lambda train: train.collect)) for train_set in itertools.combinations(railroad.trains, train_count)]
+        train_combinations = set(itertools.combinations(railroad.trains, train_count))
+        train_sets += [tuple(sorted(train_set, key=lambda train: train.collect)) for train_set in train_combinations]
     return train_sets
+
+def _get_route_sets(railroad, route_by_train):
+    best_route_sets = []
+    for train_set in _get_train_sets(railroad):
+        sorted_routes = [sorted(route_by_train[train], key=lambda route: route.value, reverse=True) for train in train_set]
+
+        best_route_set = _find_best_sub_route_set(sorted_routes)
+        best_route_sets.append(best_route_set)
+
+        LOG.info("For train set [%s], the best route is %s (%d).", ", ".join(str(train) for train in train_set), [str(route) for route in best_route_set], route_set_value(best_route_set))
+
+    return best_route_sets
 
 def _find_best_routes_by_train(route_by_train, railroad):
     route_sets = _get_route_sets(railroad, route_by_train)
