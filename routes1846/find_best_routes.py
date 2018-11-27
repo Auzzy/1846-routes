@@ -19,29 +19,29 @@ def _find_best_routes_by_train(route_by_train, railroad):
     if len(route_by_train) == 1:
         run_routes = [{train: (route, value)} for train, routes in route_by_train.items() for route, value in routes.items()]
     else:
-        run_routes = []
+        route_sets = []
         for train_set in _get_train_sets(route_by_train):
-            route_sets = itertools.product(*[route_by_train[train].keys() for train in train_set])
+            route_combinations = itertools.product(*[route_by_train[train].keys() for train in train_set])
 
-            for route_set in route_sets:
-                for route1, route2 in itertools.combinations(route_set, 2):
+            for route_combination in route_combinations:
+                for route1, route2 in itertools.combinations(route_combination, 2):
                     if route1.overlap(route2):
                         break
                 else:
-                    run_routes.append({train: (route, route_by_train[train][route]) for train, route in zip(train_set, route_set)})
+                    route_sets.append({train: (route, route_by_train[train][route]) for train, route in zip(train_set, route_combination)})
 
     if railroad.has_mail_contract:
-        for run_route in run_routes:
-            train, route_and_val = max(run_route.items(), key=lambda run_route_item: len(run_route_item[1][0].cities))
+        for route_set in route_sets:
+            train, route_and_val = max(route_set.items(), key=lambda route_set_item: len(route_set_item[1][0].cities))
             run_route[train] = (route_and_val[0], route_and_val[1] + len(route_and_val[0].cities) * 10)
 
-    LOG.debug("Found %d route sets.", len(run_routes))
-    for run_route in run_routes:
-        for train, route_and_val in run_route.items():
+    LOG.debug("Found %d route sets.", len(route_sets))
+    for route_set in route_sets:
+        for train, route_and_val in route_set.items():
             LOG.debug("{}: {} ({})".format(train, str(route_and_val[0]), route_and_val[1]))
         LOG.debug("")
 
-    return max(run_routes, key=lambda run_route: sum(value for route, value in run_route.values())) if run_routes else {}
+    return max(route_sets, key=lambda route_set: sum(value for route, value in route_set.values())) if route_sets else {}
 
 def _get_subroutes(routes, stations):
     subroutes = [route.subroutes(station.cell) for station in stations for route in routes]
