@@ -31,5 +31,5 @@ if __name__ == "__main__":
 
     best_routes = find_best_routes(board, railroads, railroads[args["active-railroad"]])
     print("RESULT")
-    for train, route_and_value in best_routes.items():
-        print("{}: {} ({})".format(train, *route_and_value))
+    for route in best_routes:
+        print("{}: {} ({})".format(route.train, route, route.value))

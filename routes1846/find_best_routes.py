@@ -9,39 +9,39 @@ from routes1846.cell import CHICAGO_CELL
 LOG = logging.getLogger(__name__)
 
 
-def _get_train_sets(route_by_train):
+def _get_train_sets(railroad):
     train_sets = []
-    for train_count in range(1, len(route_by_train) + 1):
-        train_sets += [list(train_set) for train_set in itertools.combinations(route_by_train.keys(), train_count)]
+    for train_count in range(1, len(railroad.trains) + 1):
+        train_sets += [tuple(train_set) for train_set in itertools.combinations(railroad.trains, train_count)]
     return train_sets
 
 def _find_best_routes_by_train(route_by_train, railroad):
-    if len(route_by_train) == 1:
-        run_routes = [{train: (route, value)} for train, routes in route_by_train.items() for route, value in routes.items()]
+    if len(railroad.trains) == 1:
+        route_sets = [(route, ) for routes in route_by_train.values() for route in routes]
     else:
         route_sets = []
-        for train_set in _get_train_sets(route_by_train):
-            route_combinations = itertools.product(*[route_by_train[train].keys() for train in train_set])
+        for train_set in _get_train_sets(railroad):
+            route_combinations = itertools.product(*[route_by_train[train] for train in train_set])
 
             for route_combination in route_combinations:
                 for route1, route2 in itertools.combinations(route_combination, 2):
                     if route1.overlap(route2):
                         break
                 else:
-                    route_sets.append({train: (route, route_by_train[train][route]) for train, route in zip(train_set, route_combination)})
+                    route_sets.append(route_combination)
 
     if railroad.has_mail_contract:
         for route_set in route_sets:
-            train, route_and_val = max(route_set.items(), key=lambda route_set_item: len(route_set_item[1][0].cities))
-            run_route[train] = (route_and_val[0], route_and_val[1] + len(route_and_val[0].cities) * 10)
+            route = max(route_set, key=lambda run_route: len(run_route.cities))
+            route.add_mail_contract()
 
     LOG.debug("Found %d route sets.", len(route_sets))
     for route_set in route_sets:
-        for train, route_and_val in route_set.items():
-            LOG.debug("{}: {} ({})".format(train, str(route_and_val[0]), route_and_val[1]))
+        for run_route in route_set:
+            LOG.debug("{}: {} ({})".format(run_route.train, str(run_route), run_route.value))
         LOG.debug("")
 
-    return max(route_sets, key=lambda route_set: sum(value for route, value in route_set.values())) if route_sets else {}
+    return max(route_sets, key=lambda route_set: sum(route.value for route in route_set)) if route_sets else {}
 
 def _get_subroutes(routes, stations):
     subroutes = [route.subroutes(station.cell) for station in stations for route in routes]
@@ -123,17 +123,18 @@ def _find_all_routes(board, railroad):
 
     routes_by_train = {}
     for train in railroad.trains:
-        routes_by_train[train] = set()
-        for station in stations:
-            LOG.debug("Finding routes starting at station at %s.", station.cell)
-            routes_by_train[train].update(_find_routes_from_cell(board, railroad, station.cell, train))
+        if train not in routes_by_train:
+            routes_by_train[train] = set()
+            for station in stations:
+                LOG.debug("Finding routes starting at station at %s.", station.cell)
+                routes_by_train[train].update(_find_routes_from_cell(board, railroad, station.cell, train))
 
-            LOG.debug("Finding routes which pass through station at %s.", station.cell)
-            connected_paths = _find_connected_routes(board, railroad, station, train)
-            routes_by_train[train].update(connected_paths)
+                LOG.debug("Finding routes which pass through station at %s.", station.cell)
+                connected_paths = _find_connected_routes(board, railroad, station, train)
+                routes_by_train[train].update(connected_paths)
 
-        LOG.debug("Add subroutes")
-        routes_by_train[train].update(_get_subroutes(routes_by_train[train], stations))
+            LOG.debug("Add subroutes")
+            routes_by_train[train].update(_get_subroutes(routes_by_train[train], stations))
 
     LOG.info("Found %d routes.", sum(len(route) for route in routes_by_train.values()))
     for train, routes in routes_by_train.items():
@@ -155,6 +156,6 @@ def find_best_routes(board, railroads, active_railroad):
     LOG.info("Calculating route values.")
     route_value_by_train = {}
     for train in routes:
-        route_value_by_train[train] = {route: route.value(train, active_railroad, phase) for route in routes[train]}
+        route_value_by_train[train] = [route.run(train, active_railroad, phase) for route in routes[train]]
 
     return _find_best_routes_by_train(route_value_by_train, active_railroad)

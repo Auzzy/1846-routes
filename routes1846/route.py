@@ -74,3 +74,34 @@ class Route(object):
 
     def __str__(self):
         return ", ".join([str(tile.cell) for tile in self])
+
+    def run(self, train, railroad, phase):
+        value = self.value(train, railroad, phase)
+        return _RunRoute(self, value, train)
+
+class _RunRoute(object):
+    def __init__(self, route, value, train):
+        self._route = route
+        self.value = value
+        self.train = train
+
+        self._mail_contract = False
+
+    def overlap(self, other):
+        return self._route.overlap(other._route)
+
+    def add_mail_contract(self):
+        self.value += len(self._route.cities) * 10
+
+        self._mail_contract = True
+        del self.add_mail_contract
+
+    @property
+    def cities(self):
+        return self._route.cities
+
+    def __str__(self):
+        return str(self._route)
+
+    def __iter__(self):
+        return iter(self._route)

@@ -41,6 +41,15 @@ class Train(object):
         else:
             return "{} / {}".format(self.collect, self.visit)
 
+    def __hash__(self):
+        return hash((self.phase, self.collect, self.visit))
+
+    def __eq__(self, other):
+        return isinstance(other, Train) and \
+                self.phase == other.phase and \
+                self.collect == other.collect and \
+                self.visit == other.visit
+
 class Railroad(object):
     @staticmethod
     def create(name, trains_str, has_mail_contract_raw=False):
