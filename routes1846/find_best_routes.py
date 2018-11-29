@@ -1,6 +1,10 @@
 import functools
 import itertools
 import logging
+import math
+import multiprocessing
+import os
+import queue
 
 from routes1846.board import Board
 from routes1846.route import Route
@@ -15,12 +19,15 @@ def route_set_value(route_set):
 def _is_overlapping(active_route, routes_to_check):
     return any(True for route in routes_to_check if active_route.overlap(route)) if routes_to_check else False
 
-def _find_best_sub_route_set(sorted_routes, selected_routes=None):
+def _find_best_sub_route_set(global_best_value, sorted_routes, selected_routes=None):
     selected_routes = selected_routes or []
 
     minor_routes = []
     best_route_set = selected_routes
     best_route_set_value = route_set_value(selected_routes)
+    if best_route_set_value > global_best_value.value:
+        global_best_value.value = best_route_set_value
+
     for minor_route in sorted_routes[0]:
         if not _is_overlapping(minor_route, selected_routes):
             if sorted_routes[1:]:
@@ -28,17 +35,30 @@ def _find_best_sub_route_set(sorted_routes, selected_routes=None):
                 max_possible_route_set = selected_routes + [minor_route] + [routes[0] for routes in sorted_routes[1:]]
                 max_possible_value = route_set_value(max_possible_route_set)
                 # That must be more than the current best route set value, or we bail from this iteration.
-                if max_possible_value <= best_route_set_value:
+                if max_possible_value <= global_best_value.value:
                     return best_route_set
 
-                sub_route_set = _find_best_sub_route_set(sorted_routes[1:], selected_routes + [minor_route])
+                sub_route_set = _find_best_sub_route_set(global_best_value, sorted_routes[1:], selected_routes + [minor_route])
                 sub_route_set_value = route_set_value(sub_route_set)
-                if sub_route_set_value > best_route_set_value:
+                if sub_route_set_value >= global_best_value.value:
                     best_route_set = sub_route_set
                     best_route_set_value = sub_route_set_value
+                    global_best_value.value = sub_route_set_value
             else:
                 return selected_routes + [minor_route]
     return best_route_set
+
+def _find_best_sub_route_set_worker(input_queue, global_best_value):
+    best_route_sets = []
+    while True:
+        try:
+            sorted_routes = input_queue.get_nowait()
+            best_route_set = _find_best_sub_route_set(global_best_value, sorted_routes)
+
+            if best_route_set:
+                best_route_sets.append(best_route_set)
+        except queue.Empty:
+            return best_route_sets
 
 def _get_train_sets(railroad):
     train_sets = []
@@ -47,15 +67,45 @@ def _get_train_sets(railroad):
         train_sets += [tuple(sorted(train_set, key=lambda train: train.collect)) for train_set in train_combinations]
     return train_sets
 
+
+def chunk_sequence(sequence, chunk_length):
+    """Yield successive n-sized chunks from l."""
+    for index in range(0, len(sequence), chunk_length):
+        yield sequence[index:index + chunk_length]
+
+
 def _get_route_sets(railroad, route_by_train):
+    manager = multiprocessing.Manager()
+    input_queue = manager.Queue()
+
+    sorted_routes_by_train = {train: sorted(routes, key=lambda route: route.value, reverse=True) for train, routes in route_by_train.items()}
+
+    proc_count = os.cpu_count()
     best_route_sets = []
-    for train_set in _get_train_sets(railroad):
-        sorted_routes = [sorted(route_by_train[train], key=lambda route: route.value, reverse=True) for train in train_set]
+    with multiprocessing.Pool(processes=proc_count) as pool:
+        # Using half the processes as workers seems to result in faster processing times.
+        worker_count = proc_count / 2
+        for train_set in _get_train_sets(railroad):
+            sorted_routes = [sorted_routes_by_train[train] for train in train_set]
 
-        best_route_set = _find_best_sub_route_set(sorted_routes)
-        best_route_sets.append(best_route_set)
+            # Cut routes into 1 chunk per worker and put it on the queue
+            chunk_size = math.ceil(len(sorted_routes[0]) / worker_count)
+            for root_routes in chunk_sequence(sorted_routes[0], chunk_size):
+                input_queue.put_nowait([root_routes] + sorted_routes[1:])
 
-        LOG.info("For train set [%s], the best route is %s (%d).", ", ".join(str(train) for train in train_set), [str(route) for route in best_route_set], route_set_value(best_route_set))
+            # Allow the workers to compare notes on what the best route value is
+            global_best_value = manager.Value('i', 0)
+
+            # Give each worker the input queue and the best value reference
+            worker_promises = []
+            for k in range(math.ceil(worker_count)):
+                promise = pool.apply_async(_find_best_sub_route_set_worker, (input_queue, global_best_value))
+                worker_promises.append(promise)
+    
+            # Add the results to the list
+            for promise in worker_promises:
+                values = promise.get()
+                best_route_sets.extend(values)
 
     return best_route_sets
 
