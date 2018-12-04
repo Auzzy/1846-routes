@@ -91,10 +91,10 @@ class _RunRoute(object):
         return self._route.overlap(other._route)
 
     def add_mail_contract(self):
-        self.value += len(self._route.cities) * 10
+        if not self._mail_contract:
+            self.value += len(self._route.cities) * 10
 
-        self._mail_contract = True
-        del self.add_mail_contract
+            self._mail_contract = True
 
     @property
     def cities(self):
