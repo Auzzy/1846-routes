@@ -130,6 +130,12 @@ class Chicago(City):
     def passable(self, railroad):
         return False
 
+    def get_station_exit_cell(self, user_station):
+        for exit_cell, station in self.exit_cell_to_station.items():
+            if station == user_station:
+                return exit_cell
+        raise ValueError("The requested station was not found: {}".format(user_station))
+
 class TerminalCity(BoardSpace):
     @staticmethod
     def create(coord, name, edges, values, is_east=False, is_west=False, port_value=0, meat_value=0):
