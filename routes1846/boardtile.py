@@ -54,14 +54,20 @@ class Track(BoardSpace):
         cell = Cell.from_coord(coord)
         
         paths = collections.defaultdict(list)
-        for start, end in edges:
-            paths[start].append(end)
-            paths[end].append(start)
+        for start_edge, end_edge in edges:
+            start_cell = cell.neighbors[start_edge]
+            end_cell = cell.neighbors[end_edge]
+
+            paths[start_cell].append(end_cell)
+            paths[end_cell].append(start_cell)
 
         return Track(cell, phase, paths)
 
     def __init__(self, cell, phase, paths):
         super(Track, self).__init__(None, cell, phase, paths)
+
+    def value(self, railroad, phase):
+        return 0
 
 class City(BoardSpace):
     @staticmethod
