@@ -20,51 +20,18 @@ class Board(object):
         if cell == CHICAGO_CELL or tile.is_chicago:
             raise ValueError("Since Chicago ({}) is a special tile, please use Board.place_chicago().".format(CHICAGO_CELL))
 
-        old_tile = self.get_space(cell)
-
         if int(orientation) not in range(0, 6):
             raise ValueError("Orientation out of range. Expected between 0 and 5, inclusive. Got {}.".format(orientation))
 
-        if old_tile and old_tile.is_terminal_city:
-            raise ValueError("Cannot upgrade the terminal cities.")
-
-        if not old_tile or not old_tile.is_city:
-            if tile.is_city or tile.is_z:
-                tile_type = "Z city" if tile.is_z else "city"
-                raise ValueError("{} is a track space, but you placed a {} ({}).".format(cell, tile_type, tile.id))
-        elif old_tile.is_z:
-            if not tile.is_z:
-                tile_type = "city" if tile.is_city else "track"
-                raise ValueError("{} is a Z city space, but you placed a {} ({}).".format(cell, tile_type, tile.id))
-        elif old_tile.is_city:
-            if not tile.is_city or tile.is_z:
-                tile_type = "Z city" if tile.is_z else "track"
-                raise ValueError("{} is a regular city space, but you placed a {} ({}).".format(cell, tile_type, tile.id))
-
+        old_tile = self.get_space(cell)
+        self._validate_place_tile_space_type(tile, old_tile)
+        self._validate_place_tile_neighbors(cell, tile, orientation)
         if old_tile:
-            if old_tile.phase is None:
-                raise ValueError("{} cannot be upgraded.".format(cell))
-            elif old_tile.phase >= tile.phase:
-                raise ValueError("{}: Going from phase {} to phase {} is not an upgrade.".format(cell, old_tile.phase, tile.phase))
+            self._validate_place_tile_upgrade(old_tile, cell, tile, orientation)
 
-            new_tile = PlacedTile.place(old_tile.name, cell, tile, orientation, stations=old_tile.stations, port_value=old_tile.port_value, meat_value=old_tile.meat_value)
-
-            for old_start, old_ends in old_tile._paths.items():
-                old_paths = tuple([(old_start, end) for end in old_ends])
-                new_paths = tuple([(start, end) for start, ends in new_tile._paths.items() for end in ends])
-                if not all(old_path in new_paths for old_path in old_paths):
-                    raise ValueError("The new tile placed on {} does not preserve all the old paths.".format(cell))
+            self._placed_tiles[cell] = PlacedTile.place(old_tile.name, cell, tile, orientation, stations=old_tile.stations, port_value=old_tile.port_value, meat_value=old_tile.meat_value)
         else:
-            new_tile = PlacedTile.place(None, cell, tile, orientation)
-
-        for neighbor in new_tile.paths():
-            neighbor_space = self.get_space(neighbor)
-            if neighbor_space and  neighbor_space.phase is None and cell not in neighbor_space.paths():
-                tile_type = "terminal city" if neighbor_space.is_terminal_city else "pre-printed phase 4 tile"
-                raise ValueError("A tile placed on {} in orientation {} runs into the side of the {} at {}.".format(
-                    cell, orientation, tile_type, neighbor_space.cell))
-
-        self._placed_tiles[cell] = new_tile
+            self._placed_tiles[cell] = PlacedTile.place(None, cell, tile, orientation)
 
     def place_station(self, coord, railroad):
         cell = Cell.from_coord(coord)
@@ -134,3 +101,41 @@ class Board(object):
         if invalid:
             invalid_str = ", ".join([str(cell) for cell in invalid])
             raise ValueError("Tiles at the following spots have no neighbors and no stations: {}".format(invalid_str))
+
+    def _validate_place_tile_space_type(self, tile, old_tile):
+        if old_tile and old_tile.is_terminal_city:
+            raise ValueError("Cannot upgrade the terminal cities.")
+
+        if not old_tile or not old_tile.is_city:
+            if tile.is_city or tile.is_z:
+                tile_type = "Z city" if tile.is_z else "city"
+                raise ValueError("{} is a track space, but you placed a {} ({}).".format(cell, tile_type, tile.id))
+        elif old_tile.is_z:
+            if not tile.is_z:
+                tile_type = "city" if tile.is_city else "track"
+                raise ValueError("{} is a Z city space, but you placed a {} ({}).".format(cell, tile_type, tile.id))
+        elif old_tile.is_city:
+            if not tile.is_city or tile.is_z:
+                tile_type = "Z city" if tile.is_z else "track"
+                raise ValueError("{} is a regular city space, but you placed a {} ({}).".format(cell, tile_type, tile.id))
+
+    def _validate_place_tile_neighbors(self, cell, tile, orientation):
+        for neighbor in PlacedTile.get_paths(cell, tile, orientation):
+            neighbor_space = self.get_space(neighbor)
+            if neighbor_space and  neighbor_space.phase is None and cell not in neighbor_space.paths():
+                tile_type = "terminal city" if neighbor_space.is_terminal_city else "pre-printed phase 4 tile"
+                raise ValueError("Placing tile {} on {} in orientation {} runs into the side of the {} at {}.".format(
+                    tile.id, cell, orientation, tile_type, neighbor_space.cell))
+
+    def _validate_place_tile_upgrade(self, old_tile, cell, new_tile, orientation):
+        if old_tile:
+            if old_tile.phase is None:
+                raise ValueError("{} cannot be upgraded.".format(cell))
+            elif old_tile.phase >= new_tile.phase:
+                raise ValueError("{}: Going from phase {} to phase {} is not an upgrade.".format(cell, old_tile.phase, new_tile.phase))
+
+            for old_start, old_ends in old_tile._paths.items():
+                old_paths = tuple([(old_start, end) for end in old_ends])
+                new_paths = tuple([(start, end) for start, ends in PlacedTile.get_paths(cell, new_tile, orientation).items() for end in ends])
+                if not all(old_path in new_paths for old_path in old_paths):
+                    raise ValueError("The new tile placed on {} does not preserve all the old paths.".format(cell))
