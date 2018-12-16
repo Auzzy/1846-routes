@@ -23,15 +23,7 @@ class PlacedTile(object):
 
     @staticmethod
     def place(name, cell, tile, orientation, stations=[], port_value=None, meat_value=None):
-        paths = {}
-        for start, ends in tile.paths.items():
-            start_cell = cell.neighbors[PlacedTile._rotate(start, orientation)]
-            paths[start_cell] = tuple([cell.neighbors[PlacedTile._rotate(end, orientation)] for end in ends])
-
-        # This will cause problems if B&O or PRR use their special station...
-        if None in paths:
-            raise ValueError("Placing tile {} in orientation {} at {} goes off-map.".format(tile.id, orientation, cell))
-
+        paths = PlacedTile.get_paths(cell, tile, orientation)
         return PlacedTile(name, cell, tile, stations, paths, port_value, meat_value)
 
     def __init__(self, name, cell, tile, stations=[], paths={}, port_value=None, meat_value=None):

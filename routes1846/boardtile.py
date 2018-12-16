@@ -12,7 +12,7 @@ class BoardSpace(object):
             port_value=0, meat_value=0):
         self.name = name or str(cell)
         self.cell = cell
-        self.phase = phase
+        self.phase = phase = None if phase == 4 else phase  # A built-in phase 4 tile is similar to a terminal city
         self._paths = paths
         self.port_value = port_value
         self.port_token = None

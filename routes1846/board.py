@@ -57,6 +57,13 @@ class Board(object):
         else:
             new_tile = PlacedTile.place(None, cell, tile, orientation)
 
+        for neighbor in new_tile.paths():
+            neighbor_space = self.get_space(neighbor)
+            if neighbor_space and  neighbor_space.phase is None and cell not in neighbor_space.paths():
+                tile_type = "terminal city" if neighbor_space.is_terminal_city else "pre-printed phase 4 tile"
+                raise ValueError("A tile placed on {} in orientation {} runs into the side of the {} at {}.".format(
+                    cell, orientation, tile_type, neighbor_space.cell))
+
         self._placed_tiles[cell] = new_tile
 
     def place_station(self, coord, railroad):
