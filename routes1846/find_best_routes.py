@@ -218,6 +218,18 @@ def _find_all_routes(board, railroad):
             LOG.debug("Add subroutes")
             routes_by_train[train].update(_get_subroutes(routes_by_train[train], stations))
 
+    # Confirm all routes contain at least one station. This avoids special casing the route finding algorithm to account
+    # for Chicago, although this check will.
+    for train in list(routes_by_train.keys()):
+        for route in list(routes_by_train[train]):
+            stations_on_route = [station for station in stations if route.contains_cell(station.cell)]
+            if not stations_on_route:
+                routes_by_train[train].remove(route)
+            elif [CHICAGO_CELL] == [station.cell for station in stations_on_route]:
+                exit_cell = board.get_space(CHICAGO_CELL).get_station_exit_cell(stations_on_route[0])
+                if not route.overlap(Route.create([board.get_space(CHICAGO_CELL), board.get_space(exit_cell)])):
+                    routes_by_train[train].remove(route)
+
     LOG.info("Found %d routes.", sum(len(route) for route in routes_by_train.values()))
     for train, routes in routes_by_train.items():
         for route in routes:
