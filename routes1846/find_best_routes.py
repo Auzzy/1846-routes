@@ -166,15 +166,66 @@ def _walk_routes(board, railroad, enter_from, cell, length, visited=None):
     return unique_routes
 
 
+def _filter_invalid_routes(routes, board, railroad):
+    """
+    Given a collection of routes, returns a new set containing only valid routes. Invalid routes removed:
+    - contain less than 2 cities, or
+    - go through Chicago using an impassable exit
+    - only contain Chicago as a station, but don't use the correct exit path
+
+    This fltering after the fact keeps the path finding algorithm simpler. It allows groups of 3 cells to be considered
+    (important for the Chicago checks), which would be tricky, since the algorithm operates on pairs of cells (at the
+    time of writing).
+    """
+    chicago_space = board.get_space(CHICAGO_CELL)
+    chicago_connections_space = board.get_space(CHICAGO_CONNECTIONS_CELL)
+    route_to_chicago = Route.create([chicago_connections_space, chicago_space])
+
+    chicago_neighbor_cells = [cell for cell in CHICAGO_CELL.neighbors.values() if cell != CHICAGO_CONNECTIONS_CELL]
+    stations = board.stations(railroad.name)
+
+    # A sieve style filter. If a condition isn't met, iteration continues to the next item. Items meeting all conditions
+    # are added to valid_routes at the end of the loop iteration.
+    valid_routes = set()
+    for route in routes:
+        # A route must connect at least 2 cities.
+        if len(route.cities) < 2:
+            continue
+
+        # If the route goes through Chicago, ensure the path it took either contains its station or is unblocked
+        if route.contains_cell(CHICAGO_CONNECTIONS_CELL):
+            # A route will only ever go directly from Chicago to 1 of its neighbors
+            for cell in chicago_neighbor_cells:
+                cell_route = Route.single(board.get_space(cell))
+                route_through_chicago = route_to_chicago.merge(cell_route)
+                if route.contains_cell(cell):
+                    # The path through Chicago must be passable, or it doesn't go through Chicago (i.e. the route is [C5, D6])
+                    if not route_through_chicago.overlap(route) or chicago_space.passable(cell, railroad):
+                        break
+            else:
+                continue
+
+        # Each route must contain at least 1 station
+        stations_on_route = [station for station in stations if route.contains_cell(station.cell)]
+        if not stations_on_route:
+            continue
+        # If the only station is Chicago, the path must be [D6, C5], or exit through the appropriate side.
+        elif [CHICAGO_CELL] == [station.cell for station in stations_on_route]:
+            exit_cell = board.get_space(CHICAGO_CELL).get_station_exit_cell(stations_on_route[0])
+            chicago_exit_route = Route.create([chicago_space, board.get_space(exit_cell)])
+            if not route.contains_cell(CHICAGO_CONNECTIONS_CELL) and not route.overlap(chicago_exit_route):
+                continue
+
+        valid_routes.add(route)
+
+    return valid_routes
+
 def _find_routes_from_cell(board, railroad, cell, train):
     tile = board.get_space(cell)
     if not tile.is_city:
         raise Exception("How is your station not in a city? {}".format(cell))
 
     routes = _walk_routes(board, railroad, None, cell, train.visit)
-
-    # A route must connect at least 2 cities.
-    routes = [route for route in routes if len(route.cities) >= 2]
 
     LOG.debug("Found %d routes starting at %s.", len(routes), cell)
     return routes
@@ -187,14 +238,7 @@ def _find_connected_routes(board, railroad, station, train):
     LOG.debug("Finding routes starting from connected cities.")
     connected_routes = set()
     for cell in connected_cities:
-        for path in _find_routes_from_cell(board, railroad, cell, train):
-            if station.cell == CHICAGO_CELL:
-                chicago = board.get_space(CHICAGO_CELL)
-                exit_cell = chicago.get_station_exit_cell(station)
-                if path.contains_cell(CHICAGO_CELL) and path.contains_cell(exit_cell):
-                    connected_routes.add(path)
-            elif path.contains_cell(station.cell):
-                connected_routes.add(path)
+        connected_routes.update(_find_routes_from_cell(board, railroad, cell, train))
     LOG.debug("Found %d routes from connected cities.", len(connected_routes))
     return connected_routes
 
@@ -206,39 +250,20 @@ def _find_all_routes(board, railroad):
     routes_by_train = {}
     for train in railroad.trains:
         if train not in routes_by_train:
-            routes_by_train[train] = set()
+            routes = set()
             for station in stations:
                 LOG.debug("Finding routes starting at station at %s.", station.cell)
-                routes_by_train[train].update(_find_routes_from_cell(board, railroad, station.cell, train))
+                routes.update(_find_routes_from_cell(board, railroad, station.cell, train))
 
                 LOG.debug("Finding routes which pass through station at %s.", station.cell)
                 connected_paths = _find_connected_routes(board, railroad, station, train)
-                routes_by_train[train].update(connected_paths)
+                routes.update(connected_paths)
 
             LOG.debug("Add subroutes")
-            routes_by_train[train].update(_get_subroutes(routes_by_train[train], stations))
+            routes.update(_get_subroutes(routes, stations))
 
-    chicago_space = board.get_space(CHICAGO_CELL)
-    chicago_neighbor_cells = [cell for cell in CHICAGO_CELL.neighbors.values() if cell != CHICAGO_CONNECTIONS_CELL]
-    for train in list(routes_by_train.keys()):
-        for route in list(routes_by_train[train]):
-            if route.contains_cell(CHICAGO_CONNECTIONS_CELL):
-                for chicago_neighbor_cell in chicago_neighbor_cells:
-                    if route.contains_cell(chicago_neighbor_cell) and not chicago_space.passable(chicago_neighbor_cell, railroad):
-                        routes_by_train[train].remove(route)
-
-
-    # Confirm all routes contain at least one station. This avoids special casing the route finding algorithm to account
-    # for Chicago, although this check will.
-    for train in list(routes_by_train.keys()):
-        for route in list(routes_by_train[train]):
-            stations_on_route = [station for station in stations if route.contains_cell(station.cell)]
-            if not stations_on_route:
-                routes_by_train[train].remove(route)
-            elif [CHICAGO_CELL] == [station.cell for station in stations_on_route]:
-                exit_cell = board.get_space(CHICAGO_CELL).get_station_exit_cell(stations_on_route[0])
-                if not route.overlap(Route.create([board.get_space(CHICAGO_CELL), board.get_space(exit_cell)])):
-                    routes_by_train[train].remove(route)
+            LOG.debug("Filtering out invalid routes")
+            routes_by_train[train] = _filter_invalid_routes(routes, board, railroad)
 
     LOG.info("Found %d routes.", sum(len(route) for route in routes_by_train.values()))
     for train, routes in routes_by_train.items():
