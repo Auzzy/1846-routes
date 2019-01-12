@@ -213,7 +213,7 @@ def _filter_invalid_routes(routes, board, railroad):
         elif [CHICAGO_CELL] == [station.cell for station in stations_on_route]:
             exit_cell = board.get_space(CHICAGO_CELL).get_station_exit_cell(stations_on_route[0])
             chicago_exit_route = Route.create([chicago_space, board.get_space(exit_cell)])
-            if not route.contains_cell(CHICAGO_CONNECTIONS_CELL) and not route.overlap(chicago_exit_route):
+            if not (len(route) == 2 and route.contains_cell(CHICAGO_CONNECTIONS_CELL)) and not route.overlap(chicago_exit_route):
                 continue
 
         valid_routes.add(route)
