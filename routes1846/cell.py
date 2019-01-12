@@ -1,6 +1,7 @@
 import itertools
 
 CHICAGO_CELL = None  # Defined below
+CHICAGO_CONNECTIONS_CELL = None  # Defined below
 _CELL_DB = {}
 
 
@@ -77,6 +78,7 @@ _CELL_DB = {
 }
 
 CHICAGO_CELL = Cell.from_coord("D6")
+CHICAGO_CONNECTIONS_CELL = Cell.from_coord("C5")
 
 def board_cells():
     for row, columns in _CELL_DB.items():

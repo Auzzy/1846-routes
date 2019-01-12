@@ -8,7 +8,7 @@ import queue
 
 from routes1846.board import Board
 from routes1846.route import Route
-from routes1846.cell import CHICAGO_CELL
+from routes1846.cell import CHICAGO_CELL, CHICAGO_CONNECTIONS_CELL
 
 LOG = logging.getLogger(__name__)
 
@@ -141,7 +141,7 @@ def _walk_routes(board, railroad, enter_from, cell, length, visited=None):
         return (Route.empty(), )
 
     if tile.is_city:
-        if length - 1 == 0 or (enter_from and not tile.passable(railroad)):
+        if length - 1 == 0 or (enter_from and not tile.passable(enter_from, railroad)):
             return (Route.single(tile), )
 
         remaining_cities = length - 1
@@ -217,6 +217,16 @@ def _find_all_routes(board, railroad):
 
             LOG.debug("Add subroutes")
             routes_by_train[train].update(_get_subroutes(routes_by_train[train], stations))
+
+    chicago_space = board.get_space(CHICAGO_CELL)
+    chicago_neighbor_cells = [cell for cell in CHICAGO_CELL.neighbors.values() if cell != CHICAGO_CONNECTIONS_CELL]
+    for train in list(routes_by_train.keys()):
+        for route in list(routes_by_train[train]):
+            if route.contains_cell(CHICAGO_CONNECTIONS_CELL):
+                for chicago_neighbor_cell in chicago_neighbor_cells:
+                    if route.contains_cell(chicago_neighbor_cell) and not chicago_space.passable(chicago_neighbor_cell, railroad):
+                        routes_by_train[train].remove(route)
+
 
     # Confirm all routes contain at least one station. This avoids special casing the route finding algorithm to account
     # for Chicago, although this check will.

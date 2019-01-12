@@ -118,7 +118,7 @@ class City(BoardSpace):
     def has_station(self, railroad_name):
         return bool(self.get_station(railroad_name))
 
-    def passable(self, railroad):
+    def passable(self, enter_cell, railroad):
         return self.capacity - len(self.stations) > 0 or self.has_station(railroad.name)
 
 class Chicago(City):
@@ -133,7 +133,7 @@ class Chicago(City):
         self.exit_cell_to_station[exit_cell] = station
         return station
 
-    def passable(self, railroad):
+    def passable(self, enter_cell, railroad):
         return False
 
     def get_station_exit_cell(self, user_station):
@@ -168,7 +168,7 @@ class TerminalCity(BoardSpace):
         value = self.phase1_value if phase in (1, 2) else self.phase3_value
         return value + self.port_bonus(railroad) + self.meat_bonus(railroad)
 
-    def passable(self, railroad):
+    def passable(self, enter_cell, railroad):
         return False
 
 class EastTerminalCity(TerminalCity):

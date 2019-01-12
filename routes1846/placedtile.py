@@ -46,7 +46,7 @@ class PlacedTile(object):
     def value(self, railroad, phase):
         return self.tile.value + self.port_bonus(railroad) + self.meat_bonus(railroad)
 
-    def passable(self, railroad):
+    def passable(self, enter_cell, railroad):
         return self.capacity - len(self.stations) > 0 or self.has_station(railroad.name)
 
     @property
@@ -139,3 +139,10 @@ class Chicago(PlacedTile):
             if station == user_station:
                 return exit_cell
         raise ValueError("The requested station was not found: {}".format(user_station))
+
+    def passable(self, enter_cell, railroad):
+        chicago_station = self.exit_cell_to_station.get(enter_cell)
+        if chicago_station:
+            return chicago_station.railroad == railroad
+        else:
+            return True
