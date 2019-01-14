@@ -178,8 +178,6 @@ def _filter_invalid_routes(routes, board, railroad):
     time of writing).
     """
     chicago_space = board.get_space(CHICAGO_CELL)
-    chicago_connections_space = board.get_space(CHICAGO_CONNECTIONS_CELL)
-    route_to_chicago = Route.create([chicago_connections_space, chicago_space])
 
     chicago_neighbor_cells = [cell for cell in CHICAGO_CELL.neighbors.values() if cell != CHICAGO_CONNECTIONS_CELL]
     stations = board.stations(railroad.name)
@@ -194,14 +192,17 @@ def _filter_invalid_routes(routes, board, railroad):
 
         # If the route goes through Chicago, ensure the path it took either contains its station or is unblocked
         if route.contains_cell(CHICAGO_CONNECTIONS_CELL):
-            # A route will only ever go directly from Chicago to 1 of its neighbors
+            # This is the route [C5, D6], which is valid (as long as they have a station on Chicago, checked below).
+            if len(route) == 2 and route.contains_cell(CHICAGO_CELL):
+                break
+
+            # Finds the subroute which starts at Chicago and is 3 tiles long. That is, it will go [C5, D6, chicago exit]
+            all_chicago_subroutes = [subroute for subroute in route.subroutes(CHICAGO_CONNECTIONS_CELL) if len(subroute) == 3]
+            chicago_subroute = all_chicago_subroutes[0] if all_chicago_subroutes else None
             for cell in chicago_neighbor_cells:
-                cell_route = Route.single(board.get_space(cell))
-                route_through_chicago = route_to_chicago.merge(cell_route)
-                if route.contains_cell(cell):
-                    # The path through Chicago must be passable, or it doesn't go through Chicago (i.e. the route is [C5, D6])
-                    if not route_through_chicago.overlap(route) or chicago_space.passable(cell, railroad):
-                        break
+                chicago_exit = chicago_subroute and chicago_subroute.contains_cell(cell)
+                if chicago_exit and chicago_space.passable(cell, railroad):
+                    break
             else:
                 continue
 

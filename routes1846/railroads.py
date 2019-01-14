@@ -76,9 +76,8 @@ def load(board, railroads_rows):
 
         station_coords_str = railroad_args.get("stations")
         if station_coords_str:
-            station_coords = station_coords_str.split(",")
+            station_coords = [coord.strip() for coord in station_coords_str.split(",")]
             for coord in station_coords:
-                coord = coord.strip()
                 if coord and Cell.from_coord(coord) != CHICAGO_CELL:
                     board.place_station(coord, railroad)
 
