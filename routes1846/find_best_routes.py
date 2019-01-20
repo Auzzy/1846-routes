@@ -7,6 +7,7 @@ import os
 import queue
 
 from routes1846.board import Board
+from routes1846.boardtile import EastTerminalCity
 from routes1846.route import Route
 from routes1846.cell import CHICAGO_CELL, CHICAGO_CONNECTIONS_CELL
 
@@ -188,6 +189,10 @@ def _filter_invalid_routes(routes, board, railroad):
     for route in routes:
         # A route must connect at least 2 cities.
         if len(route.cities) < 2:
+            continue
+
+        # A route cannot run from east to east
+        if isinstance(route.cities[0], EastTerminalCity) and isinstance(route.cities[-1], EastTerminalCity):
             continue
 
         # If the route goes through Chicago, ensure the path it took either contains its station or is unblocked
