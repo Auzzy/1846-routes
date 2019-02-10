@@ -44,7 +44,7 @@ class PlacedTile(object):
         self.is_terminal_city = False
 
     def value(self, railroad, phase):
-        return self.tile.value + self.port_bonus(railroad) + self.meat_bonus(railroad)
+        return self.tile.value + self.port_bonus(railroad, phase) + self.meat_bonus(railroad, phase)
 
     def passable(self, enter_cell, railroad):
         return self.capacity - len(self.stations) > 0 or self.has_station(railroad.name)
@@ -85,11 +85,11 @@ class PlacedTile(object):
 
         self.meat_token = MeatPackingToken(self.cell, railroad)
 
-    def port_bonus(self, railroad):
-        return self.port_value if self.port_token and self.port_token.railroad == railroad else 0
+    def port_bonus(self, railroad, phase):
+        return self.port_value if phase != 4 and self.port_token and self.port_token.railroad == railroad else 0
 
-    def meat_bonus(self, railroad):
-        return self.meat_value if self.meat_token and self.meat_token.railroad == railroad else 0
+    def meat_bonus(self, railroad, phase):
+        return self.meat_value if phase != 4 and self.meat_token and self.meat_token.railroad == railroad else 0
 
     def paths(self, enter_from=None, railroad=None):
         if enter_from:

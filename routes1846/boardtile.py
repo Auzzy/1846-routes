@@ -42,11 +42,11 @@ class BoardSpace(object):
 
         self.meat_token = MeatPackingToken(self.cell, railroad)
 
-    def port_bonus(self, railroad):
-        return self.port_value if self.port_token and self.port_token.railroad == railroad else 0
+    def port_bonus(self, railroad, phase):
+        return self.port_value if phase != 4 and self.port_token and self.port_token.railroad == railroad else 0
 
-    def meat_bonus(self, railroad):
-        return self.meat_value if self.meat_token and self.meat_token.railroad == railroad else 0
+    def meat_bonus(self, railroad, phase):
+        return self.meat_value if phase != 4 and self.meat_token and self.meat_token.railroad == railroad else 0
 
 class Track(BoardSpace):
     @staticmethod
@@ -96,7 +96,7 @@ class City(BoardSpace):
         return tuple(self._stations)
 
     def value(self, railroad, phase):
-        return self._value + self.port_bonus(railroad) + self.meat_bonus(railroad)
+        return self._value + self.port_bonus(railroad, phase) + self.meat_bonus(railroad, phase)
 
     def add_station(self, railroad):
         if self.has_station(railroad.name):
@@ -166,7 +166,7 @@ class TerminalCity(BoardSpace):
 
     def value(self, railroad, phase):
         value = self.phase1_value if phase in (1, 2) else self.phase3_value
-        return value + self.port_bonus(railroad) + self.meat_bonus(railroad)
+        return value + self.port_bonus(railroad, phase) + self.meat_bonus(railroad, phase)
 
     def passable(self, enter_cell, railroad):
         return False
