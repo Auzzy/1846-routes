@@ -7,6 +7,7 @@ from routes1846.cell import CHICAGO_CELL, Cell
 RAILROAD_FIELDNAMES = ("name", "trains", "stations", "chicago_station_exit_coord")
 PRIVATE_COMPANY_FIELDNAMES = ("port_coord", "meat_packing_coord", "has_mail_contract")
 FIELDNAMES = RAILROAD_FIELDNAMES + PRIVATE_COMPANY_FIELDNAMES
+
 TRAIN_TO_PHASE = {
     (2, 2): 1,
     (3, 5): 2,
@@ -15,6 +16,16 @@ TRAIN_TO_PHASE = {
     (5, 5): 3,
     (6, 6): 4,
     (7, 8): 4
+}
+
+RAILROAD_HOME_CITIES = {
+    "Baltimore & Ohio": "G19",
+    "Illinois Central": "K3",
+    "New York Central": "D20",
+    "Chesapeake & Ohio": "I15",
+    "Erie": "E21",
+    "Grand Trunk": "B16",
+    "Pennsylvania": "F20"
 }
 
 class Train(object):
@@ -74,11 +85,17 @@ def load(board, railroads_rows):
         railroad = Railroad.create(railroad_args["name"], railroad_args.get("trains"), railroad_args.get("has_mail_contract"))
         railroads[railroad.name] = railroad
 
+        if railroad.name not in RAILROAD_HOME_CITIES:
+            raise ValueError("Unrecognized railroad name: {}".format(railroad.name))
+
+        # Place the home station
+        board.place_station(RAILROAD_HOME_CITIES[railroad.name], railroad)
+
         station_coords_str = railroad_args.get("stations")
         if station_coords_str:
             station_coords = [coord.strip() for coord in station_coords_str.split(",")]
             for coord in station_coords:
-                if coord and Cell.from_coord(coord) != CHICAGO_CELL:
+                if coord and coord != RAILROAD_HOME_CITIES[railroad.name] and Cell.from_coord(coord) != CHICAGO_CELL:
                     board.place_station(coord, railroad)
 
             if str(CHICAGO_CELL) in station_coords:
