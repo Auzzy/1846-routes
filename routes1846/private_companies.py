@@ -1,11 +1,20 @@
 import csv
 
+from routes1846.railroads import Railroad
+
 FIELDNAMES = ("name", "owner", "coord")
 
 COMPANIES = {
     "Steamboat Company": lambda board, railroads, kwargs: _handle_steamboat_company(board, railroads, kwargs),
     "Meat Packing Company": lambda board, railroads, kwargs: _handle_meat_packing_company(board, railroads, kwargs),
-    "Mail Contract": lambda board, railroads, kwargs: _handle_mail_contract(board, railroads, kwargs)
+    "Mail Contract": lambda board, railroads, kwargs: _handle_mail_contract(board, railroads, kwargs),
+    "Big 4": lambda board, railroads, kwargs: _handle_independent_railroad(board, railroads, "Big 4", kwargs),
+    "Michigan Southern": lambda board, railroads, kwargs: _handle_independent_railroad(board, railroads, "Michigan Southern", kwargs)
+}
+
+HOME_CITIES = {
+    "Big 4": "G9",
+    "Michigan Southern": "C15"
 }
 
 STEAMBOAT_COORDS = ["B8", "C5", "D14", "G19", "I1"]
@@ -48,6 +57,24 @@ def _handle_mail_contract(board, railroads, kwargs):
         raise ValueError("Assigned the Mail Contract to an unrecognized or unfounded railroad: {}".format(owner))
 
     railroads[owner].assign_mail_contract()
+
+def _handle_independent_railroad(board, railroads, name, kwargs):
+    home_city = HOME_CITIES[name]
+    owner = kwargs.get("owner")
+    if owner:
+        if owner not in railroads:
+            raise ValueError("Assigned {} to an unrecognized or unfounded railroad: {}".format(name, owner))
+
+        railroad_station_coords = [str(station.cell) for station in board.stations(owner)]
+        if home_city in railroad_station_coords:
+            return
+
+        board.place_station(home_city, railroads[owner])
+    else:
+        phase = max([train.phase for railroad in railroads.values() for train in railroad.trains])
+        if phase < 4:
+            board.place_station(home_city, Railroad.create(name, "2"))
+
 
 def load_from_csv(board, railroads, companies_filepath):
     if companies_filepath:
