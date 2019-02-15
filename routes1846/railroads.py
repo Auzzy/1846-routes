@@ -4,9 +4,7 @@ import itertools
 from routes1846.tokens import Station
 from routes1846.cell import CHICAGO_CELL, Cell
 
-RAILROAD_FIELDNAMES = ("name", "trains", "stations", "chicago_station_exit_coord")
-PRIVATE_COMPANY_FIELDNAMES = ("port_coord", "meat_packing_coord", "has_mail_contract")
-FIELDNAMES = RAILROAD_FIELDNAMES + PRIVATE_COMPANY_FIELDNAMES
+FIELDNAMES = ("name", "trains", "stations", "chicago_station_exit_coord")
 
 TRAIN_TO_PHASE = {
     (2, 2): 1,
@@ -63,16 +61,18 @@ class Train(object):
 
 class Railroad(object):
     @staticmethod
-    def create(name, trains_str, has_mail_contract_raw=False):
+    def create(name, trains_str):
         trains = [Train.create(train_str) for train_str in trains_str.split(",") if train_str] if trains_str else []
 
-        has_mail_contract = has_mail_contract_raw is True or has_mail_contract_raw == "True"
-        return Railroad(name, trains, has_mail_contract)
+        return Railroad(name, trains)
 
-    def __init__(self, name, trains, has_mail_contract):
+    def __init__(self, name, trains):
         self.name = name
         self.trains = trains
-        self.has_mail_contract = has_mail_contract
+        self.has_mail_contract = False
+
+    def assign_mail_contract(self):
+        self.has_mail_contract = True
 
 
 def load_from_csv(board, railroads_filepath):
@@ -82,7 +82,7 @@ def load_from_csv(board, railroads_filepath):
 def load(board, railroads_rows):
     railroads = {}
     for railroad_args in railroads_rows:
-        railroad = Railroad.create(railroad_args["name"], railroad_args.get("trains"), railroad_args.get("has_mail_contract"))
+        railroad = Railroad.create(railroad_args["name"], railroad_args.get("trains"))
         railroads[railroad.name] = railroad
 
         if railroad.name not in RAILROAD_HOME_CITIES:
@@ -104,13 +104,5 @@ def load(board, railroads_rows):
                     raise ValueError("Chicago is listed as a station for {}, but not exit side was specified.".format(railroad.name))
     
                 board.place_chicago_station(railroad, int(chicago_station_exit_coord))
-
-        port_coord = railroad_args.get("port_coord")
-        if port_coord:
-            board.place_seaport_token(port_coord, railroad)
-
-        meat_coord = railroad_args.get("meat_packing_coord")
-        if meat_coord:
-            board.place_meat_packing_token(meat_coord, railroad)
 
     return railroads
