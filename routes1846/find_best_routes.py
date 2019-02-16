@@ -12,7 +12,8 @@ from routes1846.route import Route
 from routes1846.cell import CHICAGO_CELL, CHICAGO_CONNECTIONS_CELL
 
 LOG = logging.getLogger(__name__)
-
+TRACE = 1
+logging.addLevelName(TRACE, "TRACE")
 
 def route_set_value(route_set):
     return sum(route.value for route in route_set)
@@ -122,8 +123,8 @@ def _find_best_routes_by_train(route_by_train, railroad):
     LOG.debug("Found %d route sets.", len(route_sets))
     for route_set in route_sets:
         for run_route in route_set:
-            LOG.debug("{}: {} ({})".format(run_route.train, str(run_route), run_route.value))
-        LOG.debug("")
+            LOG.log(TRACE, "{}: {} ({})".format(run_route.train, str(run_route), run_route.value))
+        LOG.log(TRACE, "")
 
     return max(route_sets, key=lambda route_set: sum(route.value for route in route_set)) if route_sets else {}
 
@@ -162,7 +163,13 @@ def _walk_routes(board, railroad, enter_from, cell, length, visited=None):
         LOG.debug("- %s", ", ".join([str(tile.cell) for tile in visited + [tile]]))
         routes.append(Route.single(tile))
 
-    return tuple(set(routes))
+    unique_routes = tuple(set(routes))
+    
+    route_str = "\n- ".join([str(route) for route in unique_routes])
+    visited_str = ", ".join([str(tile.cell) for tile in visited])
+    LOG.log(TRACE, "After visiting [%s], found %d routes starting at %s:\n- %s", visited_str, len(unique_routes), cell, route_str)
+
+    return unique_routes
 
 
 def _filter_invalid_routes(routes, board, railroad):
@@ -253,11 +260,17 @@ def _find_all_routes(board, railroad):
             routes = set()
             for station in stations:
                 LOG.debug("Finding routes starting at station at %s.", station.cell)
-                routes.update(_find_routes_from_cell(board, railroad, station.cell, train))
+                # routes.update(_find_routes_from_cell(board, railroad, station.cell, train))
+                found_routes = _find_routes_from_cell(board, railroad, station.cell, train)
+                routes.update(found_routes)
+                for route in routes:
+                    LOG.debug(route)
 
                 LOG.debug("Finding routes which pass through station at %s.", station.cell)
                 connected_paths = _find_connected_routes(board, railroad, station, train)
                 routes.update(connected_paths)
+                for route in connected_paths:
+                    LOG.debug(route)
 
             LOG.debug("Add subroutes")
             routes.update(_get_subroutes(routes, stations))
