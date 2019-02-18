@@ -5,7 +5,7 @@ with open("README.md", "r") as readme_file:
 
 setup(
     name='routes-1846',
-    version='0.14',
+    version='0.15',
     author="Austin Noto-Moniz",
     author_email="metalnut4@netscape.net",
     description="Library for caluclating routes in 1846: The Race For The Midwest.",
