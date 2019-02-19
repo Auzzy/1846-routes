@@ -72,7 +72,7 @@ def _handle_independent_railroad(board, railroads, name, kwargs):
         board.place_station(home_city, railroads[owner])
     else:
         phase = max([train.phase for railroad in railroads.values() for train in railroad.trains])
-        if phase < 4:
+        if phase < 3:
             board.place_station(home_city, Railroad.create(name, "2"))
 
 
