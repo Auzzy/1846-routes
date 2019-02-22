@@ -195,12 +195,8 @@ def _filter_invalid_routes(routes, board, railroad):
         if isinstance(route.cities[0], EastTerminalCity) and isinstance(route.cities[-1], EastTerminalCity):
             continue
 
-        # If the route goes through Chicago, ensure the path it took either contains its station or is unblocked
-        if route.contains_cell(CHICAGO_CONNECTIONS_CELL):
-            # This is the route [C5, D6], which is valid (as long as they have a station on Chicago, checked below).
-            if len(route) == 2 and route.contains_cell(CHICAGO_CELL):
-                continue
-
+        # If the route goes through Chicago and isn't [C5, D6], ensure the path it took either contains its station or is unblocked
+        if route.contains_cell(CHICAGO_CONNECTIONS_CELL) and len(route.cities) != 2:
             # Finds the subroute which starts at Chicago and is 3 tiles long. That is, it will go [C5, D6, chicago exit]
             all_chicago_subroutes = [subroute for subroute in route.subroutes(CHICAGO_CONNECTIONS_CELL) if len(subroute) == 3]
             chicago_subroute = all_chicago_subroutes[0] if all_chicago_subroutes else None
