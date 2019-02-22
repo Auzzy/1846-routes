@@ -89,24 +89,25 @@ def _get_route_sets(railroad, route_by_train):
         for train_set in _get_train_sets(railroad):
             sorted_routes = [sorted_routes_by_train[train] for train in train_set]
 
-            # Cut routes into 1 chunk per worker and put it on the queue
-            chunk_size = math.ceil(len(sorted_routes[0]) / worker_count)
-            for root_routes in chunk_sequence(sorted_routes[0], chunk_size):
-                input_queue.put_nowait([root_routes] + sorted_routes[1:])
-
-            # Allow the workers to compare notes on what the best route value is
-            global_best_value = manager.Value('i', 0)
-
-            # Give each worker the input queue and the best value reference
-            worker_promises = []
-            for k in range(math.ceil(worker_count)):
-                promise = pool.apply_async(_find_best_sub_route_set_worker, (input_queue, global_best_value))
-                worker_promises.append(promise)
+            if all(sorted_routes):
+                # Cut routes into 1 chunk per worker and put it on the queue
+                chunk_size = math.ceil(len(sorted_routes[0]) / worker_count)
+                for root_routes in chunk_sequence(sorted_routes[0], chunk_size):
+                    input_queue.put_nowait([root_routes] + sorted_routes[1:])
     
-            # Add the results to the list
-            for promise in worker_promises:
-                values = promise.get()
-                best_route_sets.extend(values)
+                # Allow the workers to compare notes on what the best route value is
+                global_best_value = manager.Value('i', 0)
+    
+                # Give each worker the input queue and the best value reference
+                worker_promises = []
+                for k in range(math.ceil(worker_count)):
+                    promise = pool.apply_async(_find_best_sub_route_set_worker, (input_queue, global_best_value))
+                    worker_promises.append(promise)
+        
+                # Add the results to the list
+                for promise in worker_promises:
+                    values = promise.get()
+                    best_route_sets.extend(values)
 
     return best_route_sets
 
