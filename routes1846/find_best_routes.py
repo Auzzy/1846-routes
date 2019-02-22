@@ -276,11 +276,12 @@ def _find_all_routes(board, railroad):
     return routes_by_train
 
 def _detect_phase(railroads):
-    return max([train.phase for railroad in railroads.values() for train in railroad.trains])
+    all_train_phases = [train.phase for railroad in railroads.values() for train in railroad.trains]
+    return max(all_train_phases) if all_train_phases else 1
 
 def find_best_routes(board, railroads, active_railroad):
     LOG.info("Finding the best route for %s.", active_railroad.name)
-    
+
     routes = _find_all_routes(board, active_railroad)
 
     phase = _detect_phase(railroads)
