@@ -2,6 +2,8 @@ import argparse
 import logging
 import sys
 
+import os
+
 from routes1846 import boardstate, find_best_routes, private_companies, railroads
 
 
@@ -37,4 +39,5 @@ if __name__ == "__main__":
     best_routes = find_best_routes(board, railroads, railroads[args["active-railroad"]])
     print("RESULT")
     for route in best_routes:
-        print("{}: {} ({})".format(route.train, route, route.value))
+        city_path = " -> ".join("{} [{}]".format(city.name, route.city_values[city]) for city in route.visited_cities)
+        print("{}: {} = {} ({})".format(route.train, route, route.value, city_path))
