@@ -22,14 +22,23 @@ class Route(object):
     def merge(self, route):
         return Route.create(self._path + route._path)
 
-    def _best_cities(self, train, route_city_values, station_cities):
-        best_station_city = max(station_cities.items(), key=lambda tile_and_value: tile_and_value[1])
+    def _best_cities(self, train, route_city_values, station_cities, include=None):
+        always_include = [(city, route_city_values[city]) for city in (include or [])]
 
+        # Find the station city to always include
+        always_include.append(max(station_cities.items(), key=lambda tile_and_value: tile_and_value[1]))
+
+        # Remove from consideration the station city and any cities that should always be included.
         city_values = route_city_values.copy()
-        del city_values[best_station_city[0]]
+        for to_include in always_include:
+            del city_values[to_include[0]]
 
-        best_cities = dict(heapq.nlargest(train.collect - 1, city_values.items(), key=lambda city_item: city_item[1]))
-        best_cities.update(dict([best_station_city]))
+        # The route can collect cities only after accounting for anything marked always collect
+        collect = train.collect - len(always_include)
+        best_cities = dict(heapq.nlargest(collect, city_values.items(), key=lambda city_item: city_item[1]))
+
+        # Add back in the cities marked always collect
+        best_cities.update(dict(always_include))
 
         return best_cities, sum(best_cities.values())
 
@@ -38,20 +47,20 @@ class Route(object):
         station_cells = {station.cell for station in board.stations(railroad.name)}
         station_cities = {tile: value for tile, value in route_city_values.items() if tile.cell in station_cells}
 
-        best_cities, base_route_value = self._best_cities(train, route_city_values, station_cities)
+        best_cities, route_value = self._best_cities(train, route_city_values, station_cities)
 
-        # Check for east west bonus.
-        ends = [self._path[0], self._path[-1]]
-        east_to_west = all(isinstance(tile, (EastTerminalCity, WestTerminalCity)) for tile in ends) and type(ends[0]) != type(ends[1])
+        # Check if the route runs from east to west.
+        terminals = [self._path[0], self._path[-1]]
+        east_to_west = all(isinstance(tile, (EastTerminalCity, WestTerminalCity)) for tile in terminals) and type(terminals[0]) != type(terminals[1])
         if east_to_west:
-            # There is an east-west route. Confirm that those terminal cities
-            # plus their bonuses is the highest value route.
-            route_city_values_with_bonus = route_city_values.copy()
-            route_city_values_with_bonus.update({end: end.value(railroad, phase, east_to_west) for end in ends})
+            # There is an east-west route. Confirm that a route including those
+            # terminal cities is the highest value route (including bonuses).
+            route_city_values_e2w = route_city_values.copy()
+            route_city_values_e2w.update({terminal: terminal.value(railroad, phase, east_to_west) for terminal in terminals})
 
-            best_cities_with_bonus, base_route_value_with_bonus = self._best_cities(train, route_city_values_with_bonus, station_cities)
+            best_cities_e2w, route_value_e2w = self._best_cities(train, route_city_values_e2w, station_cities, terminals)
 
-            return best_cities_with_bonus if base_route_value_with_bonus >= base_route_value else best_cities
+            return best_cities_e2w if route_value_e2w >= route_value else best_cities
         else:
             return best_cities
 
