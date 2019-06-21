@@ -22,19 +22,34 @@ class Route(object):
     def merge(self, route):
         return Route.create(self._path + route._path)
 
-    def value(self, train, railroad, phase):
-        route_city_values = {tile: tile.value(railroad, phase) for tile in self if tile.is_city}
-        best_cities = dict(heapq.nlargest(train.collect, route_city_values.items(), key=lambda city_item: city_item[1]))
-        base_route_value = sum(best_cities.values())
+    def _best_cities(self, train, route_city_values, station_cities):
+        best_station_city = max(station_cities.items(), key=lambda tile_and_value: tile_and_value[1])
 
+        city_values = route_city_values.copy()
+        del city_values[best_station_city[0]]
+
+        best_cities = dict(heapq.nlargest(train.collect - 1, city_values.items(), key=lambda city_item: city_item[1]))
+        best_cities.update(dict([best_station_city]))
+
+        return best_cities, sum(best_cities.values())
+
+    def value(self, board, train, railroad, phase):
+        route_city_values = {tile: tile.value(railroad, phase) for tile in self if tile.is_city}
+        station_cells = {station.cell for station in board.stations(railroad.name)}
+        station_cities = {tile: value for tile, value in route_city_values.items() if tile.cell in station_cells}
+
+        best_cities, base_route_value = self._best_cities(train, route_city_values, station_cities)
+
+        # Check for east west bonus.
         ends = [self._path[0], self._path[-1]]
         east_to_west = all(isinstance(tile, (EastTerminalCity, WestTerminalCity)) for tile in ends) and type(ends[0]) != type(ends[1])
         if east_to_west:
+            # There is an east-west route. Confirm that those terminal cities
+            # plus their bonuses is the highest value route.
             route_city_values_with_bonus = route_city_values.copy()
             route_city_values_with_bonus.update({end: end.value(railroad, phase, east_to_west) for end in ends})
 
-            best_cities_with_bonus = dict(heapq.nlargest(train.collect, route_city_values_with_bonus.items(), key=lambda city_item: city_item[1]))
-            base_route_value_with_bonus = sum(best_cities_with_bonus.values())
+            best_cities_with_bonus, base_route_value_with_bonus = self._best_cities(train, route_city_values_with_bonus, station_cities)
 
             return best_cities_with_bonus if base_route_value_with_bonus >= base_route_value else best_cities
         else:
@@ -81,8 +96,8 @@ class Route(object):
     def __str__(self):
         return ", ".join([str(tile.cell) for tile in self])
 
-    def run(self, train, railroad, phase):
-        visited_cities = self.value(train, railroad, phase)
+    def run(self, board, train, railroad, phase):
+        visited_cities = self.value(board, train, railroad, phase)
         return _RunRoute(self, visited_cities, train)
 
 class _RunRoute(object):

@@ -289,6 +289,6 @@ def find_best_routes(board, railroads, active_railroad):
     LOG.info("Calculating route values.")
     route_value_by_train = {}
     for train in routes:
-        route_value_by_train[train] = [route.run(train, active_railroad, phase) for route in routes[train]]
+        route_value_by_train[train] = [route.run(board, train, active_railroad, phase) for route in routes[train]]
 
     return _find_best_routes_by_train(route_value_by_train, active_railroad)
