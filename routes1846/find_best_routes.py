@@ -280,6 +280,9 @@ def _detect_phase(railroads):
     return max(all_train_phases) if all_train_phases else 1
 
 def find_best_routes(board, railroads, active_railroad):
+    if active_railroad.is_removed:
+        raise ValueError("Cannot calculate routes for a removed railroad: {}".format(active_railroad.name))
+
     LOG.info("Finding the best route for %s.", active_railroad.name)
 
     routes = _find_all_routes(board, active_railroad)

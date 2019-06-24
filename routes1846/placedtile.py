@@ -74,12 +74,18 @@ class PlacedTile(object):
         return bool(self.get_station(railroad_name))
 
     def place_seaport_token(self, railroad):
+        if railroad.is_removed:
+            raise ValueError("A removed railroad cannot place Steamboat Company's token: {}".format(railroad.name))
+
         if self.port_value == 0:
             raise ValueError("It is not legal to place the seaport token on this space ({}).".format(self.cell))
 
         self.port_token = SeaportToken(self.cell, railroad)
 
     def place_meat_packing_token(self, railroad):
+        if railroad.is_removed:
+            raise ValueError("A removed railroad cannot place Meat Packing Company's token: {}".format(railroad.name))
+
         if self.meat_value == 0:
             raise ValueError("It is not legal to place the meat packing token on this space ({}).".format(self.cell))
 
@@ -92,6 +98,9 @@ class PlacedTile(object):
         return self.meat_value if phase != 4 and self.meat_token and self.meat_token.railroad == railroad else 0
 
     def paths(self, enter_from=None, railroad=None):
+        if railroad and railroad.is_removed:
+            raise ValueError("A removed railroad cannot run routes: {}".format(railroad.name))
+
         if enter_from:
             return self._paths[enter_from]
         else:

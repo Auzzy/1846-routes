@@ -59,6 +59,9 @@ class Board(object):
         chicago.add_station(railroad, exit_cell)
 
     def place_seaport_token(self, coord, railroad):
+        if railroad.is_removed:
+            raise ValueError("A removed railroad cannot place Steamboat Company's token: {}".format(railroad.name))
+
         current_cell = Cell.from_coord(coord)
         for cell in board_cells():
             space = self.get_space(cell)
@@ -68,6 +71,9 @@ class Board(object):
         self.get_space(current_cell).place_seaport_token(railroad)
 
     def place_meat_packing_token(self, coord, railroad):
+        if railroad.is_removed:
+            raise ValueError("A removed railroad cannot place Meat Packing Company's token: {}".format(railroad.name))
+
         current_cell = Cell.from_coord(coord)
         for cell in board_cells():
             space = self.get_space(cell)

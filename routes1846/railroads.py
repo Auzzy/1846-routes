@@ -26,6 +26,12 @@ RAILROAD_HOME_CITIES = {
     "Pennsylvania": "F20"
 }
 
+REMOVABLE_RAILROADS = {
+    "Chesapeake & Ohio",
+    "Erie",
+    "Pennsylvania"
+}
+
 class Train(object):
     @staticmethod
     def create(train_str):
@@ -74,6 +80,27 @@ class Railroad(object):
     def assign_mail_contract(self):
         self.has_mail_contract = True
 
+    @property
+    def is_removed(self):
+        return False
+
+class RemovedRailroad(Railroad):
+    @staticmethod
+    def create(name):
+        return RemovedRailroad(name)
+
+    def __init__(self, name):
+        super().__init__(name, [])
+
+        self.has_mail_contract = False
+
+    def assign_mail_contract(self):
+        raise ValueError("Cannot assign Mail Contract to a removed railroad: {}".format(self.name))
+
+    @property
+    def is_removed(self):
+        return True
+
 
 def load_from_csv(board, railroads_filepath):
     with open(railroads_filepath, newline='') as railroads_file:
@@ -82,7 +109,19 @@ def load_from_csv(board, railroads_filepath):
 def load(board, railroads_rows):
     railroads = {}
     for railroad_args in railroads_rows:
-        railroad = Railroad.create(railroad_args["name"], railroad_args.get("trains"))
+        trains_str = railroad_args.get("trains")
+        if trains_str and trains_str.lower() == "removed":
+            name = railroad_args["name"]
+            if name not in REMOVABLE_RAILROADS:
+                raise ValueError("Attempted to remove a non-removable railroad.")
+
+            railroad = RemovedRailroad.create(name)
+        else:
+            railroad = Railroad.create(railroad_args["name"], trains_str)
+
+        if railroad.name in railroads:
+            raise ValueError(f"Found multiple {railroad.name} definitions.")
+
         railroads[railroad.name] = railroad
 
         if railroad.name not in RAILROAD_HOME_CITIES:
@@ -102,7 +141,7 @@ def load(board, railroads_rows):
                 chicago_station_exit_coord = str(railroad_args.get("chicago_station_exit_coord", "")).strip()
                 if not chicago_station_exit_coord:
                     raise ValueError("Chicago is listed as a station for {}, but not exit side was specified.".format(railroad.name))
-    
+
                 board.place_chicago_station(railroad, int(chicago_station_exit_coord))
 
     return railroads

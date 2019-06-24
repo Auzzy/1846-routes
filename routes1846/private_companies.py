@@ -65,11 +65,15 @@ def _handle_independent_railroad(board, railroads, name, kwargs):
         if owner not in railroads:
             raise ValueError("Assigned {} to an unrecognized or unfounded railroad: {}".format(name, owner))
 
+        owner_railroad = railroads[owner]
+        if owner_railroad.is_removed:
+            raise ValueError("Cannot assign {} to a removed railroad: {}".format(name, owner_railroad.name))
+
         railroad_station_coords = [str(station.cell) for station in board.stations(owner)]
         if home_city in railroad_station_coords:
             return
 
-        board.place_station(home_city, railroads[owner])
+        board.place_station(home_city, owner_railroad)
     else:
         phase = max([train.phase for railroad in railroads.values() for train in railroad.trains])
         if phase < 3:

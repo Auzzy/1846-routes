@@ -106,6 +106,9 @@ class Route(object):
         return ", ".join([str(tile.cell) for tile in self])
 
     def run(self, board, train, railroad, phase):
+        if railroad.is_removed:
+            raise ValueError("Cannot run routes for a removed railroad: {}".format(railroad.name))
+
         visited_cities = self.value(board, train, railroad, phase)
         return _RunRoute(self, visited_cities, train)
 

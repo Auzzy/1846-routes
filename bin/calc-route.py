@@ -36,7 +36,11 @@ if __name__ == "__main__":
     private_companies.load_from_csv(board, railroads, args.get("private_companies_file"))
     board.validate()
 
-    best_routes = find_best_routes(board, railroads, railroads[args["active-railroad"]])
+    active_railroad = railroads[args["active-railroad"]]
+    if active_railroad.is_removed:
+        raise ValueError("Cannot calculate routes for a removed railroad: {}".format(active_railroad.name))
+
+    best_routes = find_best_routes(board, railroads, active_railroad)
     print("RESULT")
     for route in best_routes:
         city_path = " -> ".join("{} [{}]".format(city.name, route.city_values[city]) for city in route.visited_cities)
