@@ -144,6 +144,7 @@ def _walk_routes(board, railroad, enter_from, cell, length, visited=None):
 
     if tile.is_city:
         if length - 1 == 0 or (enter_from and not tile.passable(enter_from, railroad)):
+            LOG.debug("- %s", ", ".join([str(tile.cell) for tile in visited + [tile]]))
             return (Route.single(tile), )
 
         remaining_cities = length - 1
@@ -158,14 +159,10 @@ def _walk_routes(board, railroad, enter_from, cell, length, visited=None):
         routes += [Route.single(tile).merge(neighbor_path) for neighbor_path in neighbor_paths if neighbor_path]
 
     if not routes and tile.is_city:
+        LOG.debug("- %s", ", ".join([str(tile.cell) for tile in visited + [tile]]))
         routes.append(Route.single(tile))
 
-    unique_routes = tuple(set(routes))
-
-    route_str = "\n- ".join([str(route) for route in unique_routes])
-    LOG.debug("Found %d routes starting at %s:\n- %s", len(unique_routes), cell, route_str)
-
-    return unique_routes
+    return tuple(set(routes))
 
 
 def _filter_invalid_routes(routes, board, railroad):
