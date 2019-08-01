@@ -75,8 +75,8 @@ class Route(object):
             return Route.empty()
 
         start_index = [index for index, tile in enumerate(self._path) if tile.cell == start][0]
-        backwards_subroutes = {Route.create(self._path[index:start_index]) for index in range(start_index - 1, -1, -1)}
-        forwards_subroutes = {Route.create(self._path[start_index:index]) for index in range(start_index + 1, len(self._path))}
+        backwards_subroutes = {Route.create(self._path[index:start_index + 1]) for index in range(start_index, -1, -1)}
+        forwards_subroutes = {Route.create(self._path[start_index:index]) for index in range(start_index + 1, len(self._path) + 1)}
         subroutes = backwards_subroutes.union(forwards_subroutes)
         return [subroute for subroute in subroutes if len(subroute.cities) >= 2]
 
@@ -97,7 +97,7 @@ class Route(object):
         return len(self._path)
 
     def __hash__(self):
-        return hash(tuple(set(self._path)))
+        return hash(tuple(sorted([tile.cell for tile in self._path])))
 
     def __eq__(self, other):
         return isinstance(other, Route) and set(other._path) == set(self._path)

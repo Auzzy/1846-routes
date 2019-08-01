@@ -161,7 +161,7 @@ def _walk_routes(board, railroad, enter_from, cell, length, visited=None):
         routes.append(Route.single(tile))
 
     unique_routes = tuple(set(routes))
-    
+
     route_str = "\n- ".join([str(route) for route in unique_routes])
     LOG.debug("Found %d routes starting at %s:\n- %s", len(unique_routes), cell, route_str)
 
