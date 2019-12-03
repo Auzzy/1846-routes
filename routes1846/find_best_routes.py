@@ -1,4 +1,3 @@
-import functools
 import itertools
 import logging
 import math
@@ -6,14 +5,15 @@ import multiprocessing
 import os
 import queue
 
-from routes1846.board import Board
 from routes1846.boardtile import EastTerminalCity
 from routes1846.route import Route
+from routes1846.best_route_set import find_best_route_set
 from routes1846.cell import CHICAGO_CELL, CHICAGO_CONNECTIONS_CELL
 
 LOG = logging.getLogger(__name__)
 
 
+'''
 def route_set_value(route_set):
     return sum(route.value for route in route_set)
 
@@ -126,151 +126,7 @@ def _find_best_routes_by_train(route_by_train, railroad):
         LOG.debug("")
 
     return max(route_sets, key=lambda route_set: sum(route.value for route in route_set)) if route_sets else {}
-
-def _get_subroutes(routes, stations):
-    subroutes = [route.subroutes(station.cell) for station in stations for route in routes]
-    return set(itertools.chain.from_iterable([subroute for subroute in subroutes if subroute]))
-
-def _find_connected_cities(board, railroad, cell, dist):
-    tiles = itertools.chain.from_iterable(_walk_routes(board, railroad, None, cell, dist))
-    return {tile.cell for tile in tiles if tile.is_city} - {cell}
-
-def _walk_routes(board, railroad, enter_from, cell, length, visited=None):
-    visited = visited or []
-
-    tile = board.get_space(cell)
-    if not tile or (enter_from and enter_from not in tile.paths()) or tile in visited:
-        return (Route.empty(), )
-
-    if tile.is_city:
-        if length - 1 == 0 or (enter_from and not tile.passable(enter_from, railroad)):
-            LOG.debug("- %s", ", ".join([str(tile.cell) for tile in visited + [tile]]))
-            return (Route.single(tile), )
-
-        remaining_cities = length - 1
-    else:
-        remaining_cities = length
-
-    neighbors = tile.paths(enter_from, railroad)
-
-    routes = []
-    for neighbor in neighbors:
-        neighbor_paths = _walk_routes(board, railroad, cell, neighbor, remaining_cities, visited + [tile])
-        routes += [Route.single(tile).merge(neighbor_path) for neighbor_path in neighbor_paths if neighbor_path]
-
-    if not routes and tile.is_city:
-        LOG.debug("- %s", ", ".join([str(tile.cell) for tile in visited + [tile]]))
-        routes.append(Route.single(tile))
-
-    return tuple(set(routes))
-
-
-def _filter_invalid_routes(routes, board, railroad):
-    """
-    Given a collection of routes, returns a new set containing only valid routes. Invalid routes removed:
-    - contain less than 2 cities, or
-    - go through Chicago using an impassable exit
-    - only contain Chicago as a station, but don't use the correct exit path
-
-    This fltering after the fact keeps the path finding algorithm simpler. It allows groups of 3 cells to be considered
-    (important for the Chicago checks), which would be tricky, since the algorithm operates on pairs of cells (at the
-    time of writing).
-    """
-    chicago_space = board.get_space(CHICAGO_CELL)
-
-    chicago_neighbor_cells = [cell for cell in CHICAGO_CELL.neighbors.values() if cell != CHICAGO_CONNECTIONS_CELL]
-    stations = board.stations(railroad.name)
-
-    # A sieve style filter. If a condition isn't met, iteration continues to the next item. Items meeting all conditions
-    # are added to valid_routes at the end of the loop iteration.
-    valid_routes = set()
-    for route in routes:
-        # A route must connect at least 2 cities.
-        if len(route.cities) < 2:
-            continue
-
-        # A route cannot run from east to east
-        if isinstance(route.cities[0], EastTerminalCity) and isinstance(route.cities[-1], EastTerminalCity):
-            continue
-
-        # If the route goes through Chicago and isn't [C5, D6], ensure the path it took either contains its station or is unblocked
-        if route.contains_cell(CHICAGO_CONNECTIONS_CELL) and len(route.cities) != 2:
-            # Finds the subroute which starts at Chicago and is 3 tiles long. That is, it will go [C5, D6, chicago exit]
-            all_chicago_subroutes = [subroute for subroute in route.subroutes(CHICAGO_CONNECTIONS_CELL) if len(subroute) == 3]
-            chicago_subroute = all_chicago_subroutes[0] if all_chicago_subroutes else None
-            for cell in chicago_neighbor_cells:
-                chicago_exit = chicago_subroute and chicago_subroute.contains_cell(cell)
-                if chicago_exit and chicago_space.passable(cell, railroad):
-                    break
-            else:
-                continue
-
-        # Each route must contain at least 1 station
-        stations_on_route = [station for station in stations if route.contains_cell(station.cell)]
-        if not stations_on_route:
-            continue
-        # If the only station is Chicago, the path must be [D6, C5], or exit through the appropriate side.
-        elif [CHICAGO_CELL] == [station.cell for station in stations_on_route]:
-            exit_cell = board.get_space(CHICAGO_CELL).get_station_exit_cell(stations_on_route[0])
-            chicago_exit_route = Route.create([chicago_space, board.get_space(exit_cell)])
-            if not (len(route) == 2 and route.contains_cell(CHICAGO_CONNECTIONS_CELL)) and not route.overlap(chicago_exit_route):
-                continue
-
-        valid_routes.add(route)
-
-    return valid_routes
-
-def _find_routes_from_cell(board, railroad, cell, train):
-    tile = board.get_space(cell)
-    if not tile.is_city:
-        raise Exception("How is your station not in a city? {}".format(cell))
-
-    routes = _walk_routes(board, railroad, None, cell, train.visit)
-
-    LOG.debug("Found %d routes starting at %s.", len(routes), cell)
-    return routes
-
-def _find_connected_routes(board, railroad, station, train):
-    LOG.debug("Finding connected cities.")
-    connected_cities = _find_connected_cities(board, railroad, station.cell, train.visit - 1)
-    LOG.debug("Connected cities: %s", ", ".join([str(cell) for cell in connected_cities]))
-
-    LOG.debug("Finding routes starting from connected cities.")
-    connected_routes = set()
-    for cell in connected_cities:
-        connected_routes.update(_find_routes_from_cell(board, railroad, cell, train))
-    LOG.debug("Found %d routes from connected cities.", len(connected_routes))
-    return connected_routes
-
-def _find_all_routes(board, railroad):
-    LOG.info("Finding all possible routes for each train from %s's stations.", railroad.name)
-
-    stations = board.stations(railroad.name)
-
-    routes_by_train = {}
-    for train in railroad.trains:
-        if train not in routes_by_train:
-            routes = set()
-            for station in stations:
-                LOG.debug("Finding routes starting at station at %s.", station.cell)
-                routes.update(_find_routes_from_cell(board, railroad, station.cell, train))
-
-                LOG.debug("Finding routes which pass through station at %s.", station.cell)
-                connected_paths = _find_connected_routes(board, railroad, station, train)
-                routes.update(connected_paths)
-
-            LOG.debug("Add subroutes")
-            routes.update(_get_subroutes(routes, stations))
-
-            LOG.debug("Filtering out invalid routes")
-            routes_by_train[train] = _filter_invalid_routes(routes, board, railroad)
-
-    LOG.info("Found %d routes.", sum(len(route) for route in routes_by_train.values()))
-    for train, routes in routes_by_train.items():
-        for route in routes:
-            LOG.debug("{}: {}".format(train, str(route)))
-
-    return routes_by_train
+'''
 
 def _detect_phase(railroads):
     all_train_phases = [train.phase for railroad in railroads.values() for train in railroad.trains]
@@ -280,15 +136,10 @@ def find_best_routes(board, railroads, active_railroad):
     if active_railroad.is_removed:
         raise ValueError("Cannot calculate routes for a removed railroad: {}".format(active_railroad.name))
 
-    LOG.info("Finding the best route for %s.", active_railroad.name)
-
-    routes = _find_all_routes(board, active_railroad)
-
     phase = _detect_phase(railroads)
 
-    LOG.info("Calculating route values.")
-    route_value_by_train = {}
-    for train in routes:
-        route_value_by_train[train] = [route.run(board, train, active_railroad, phase) for route in routes[train]]
+    LOG.info("Finding the best route for %s.", active_railroad.name)
 
-    return _find_best_routes_by_train(route_value_by_train, active_railroad)
+    routes = board.find_routes(active_railroad)
+    railroad_routes = RailroadRoutes.run(active_railroad, routes, board, phase):
+    return railroad_routes.calculate_best_route_set()

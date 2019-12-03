@@ -3,6 +3,7 @@ import itertools
 from routes1846 import boardtile
 from routes1846.cell import Cell, CHICAGO_CELL, board_cells
 from routes1846.placedtile import Chicago, PlacedTile
+from routes1846.route_finder import RouteFinder
 from routes1846.tokens import Station
 
 class Board(object):
@@ -14,6 +15,8 @@ class Board(object):
     def __init__(self, board_tiles):
         self._board_tiles = board_tiles
         self._placed_tiles = {}
+        
+        self._route_finder = RouteFinder(self)
 
     def place_tile(self, coord, tile, orientation):
         cell = Cell.from_coord(coord)
@@ -92,6 +95,9 @@ class Board(object):
 
     def get_space(self, cell):
         return self._placed_tiles.get(cell) or self._board_tiles.get(cell)
+
+    def find_routes(self, railroad):
+        return self._route_finder.find_all(railroad)
 
     def validate(self):
         invalid = []
